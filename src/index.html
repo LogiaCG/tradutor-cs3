@@ -1757,6 +1757,85 @@
       padding: 5px 0;
     }
 
+    /* Fase 3 — Calculadora de ID de arquivo novo */
+    .id-calc-row { display: flex; gap: 8px; }
+    .id-calc-input {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-body);
+      background: var(--bg-panel);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      width: 220px;
+      transition: border-color .12s ease;
+    }
+    .id-calc-input:focus { outline: none; border-color: var(--accent-amber); }
+    .id-calc-hint { color: var(--text-onDark-soft); font-size: var(--fs-meta); }
+    .id-calc-result {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      color: var(--accent-amber);
+      font-size: var(--fs-body);
+      background: var(--bg-panel-raised, var(--bg-panel));
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      width: fit-content;
+    }
+
+    /* Fase 3 — Editor de OPS */
+    .ops-paste { display: flex; flex-direction: column; gap: 6px; }
+    .ops-paste textarea {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-meta);
+      background: var(--bg-panel);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      resize: vertical;
+    }
+    .ops-entry-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px 14px;
+    }
+    .ops-field { display: flex; flex-direction: column; gap: 3px; }
+    .ops-field-label {
+      color: var(--text-onDark-soft);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ops-field input {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-body);
+      background: var(--bg-panel);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+      transition: border-color .12s ease;
+    }
+    .ops-field input:focus { outline: none; border-color: var(--accent-amber); }
+    .ops-field input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Fase 3 — Editor de tabela de itens (.tbl) */
+    .tbl-item-form { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+    .tbl-item-form textarea {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-body);
+      background: var(--bg-panel);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      resize: vertical;
+    }
+    .tbl-item-form textarea:focus, .tbl-item-form input:focus { outline: none; border-color: var(--accent-amber); }
+
     .settings-test-result {
       font-family: 'IBM Plex Mono', monospace;
       font-size: var(--fs-meta);
@@ -2075,6 +2154,11 @@
     const WrapText = (p) => <Icon {...p} paths={<><line x1="3" x2="21" y1="6" y2="6"/><path d="M3 12h15a3 3 0 1 1 0 6h-4"/><polyline points="16 16 14 18 16 20"/><line x1="3" x2="10" y1="18" y2="18"/></>} />;
     const Settings = (p) => <Icon {...p} paths={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />;
     const CheckIcon2 = (p) => <Icon {...p} paths={<path d="M20 6 9 17l-5-5"/>} />;
+    // Fase 3: calculadora de ID de arquivo novo + editor de OPS (pontos de entrada no mapa)
+    const Calculator = (p) => <Icon {...p} paths={<><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></>} />;
+    const MapPin = (p) => <Icon {...p} paths={<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>} />;
+    const Copy = (p) => <Icon {...p} paths={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>} />;
+    const Database = (p) => <Icon {...p} paths={<><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></>} />;
 
     // ---------------------------------------------------------------------------
     // Lógica de detecção de texto traduzível
@@ -2474,6 +2558,434 @@
       return next;
     }
 
+// ---------------------------------------------------------------------
+// Fase 3 — Assistente de ID de arquivo novo (a/c/t/r/m/e/f/v/i + número).
+//
+// Fórmula confirmada byte a byte contra o exemplo do PDF "Documentation
+// for script files editing in CS3" (autor Twn): "m0292" -> 0x000625E8.
+// Conferida à mão: base('m')=0x61A80=400000 decimal; 292*10=2920;
+// 400000+2920=402920=0x625E8. Bate exatamente com o exemplo do guia.
+// A tabela de offsets abaixo é a mesma do PDF (um bloco de 100000 IDs por
+// prefixo, exceto 'i' que começa em 1300000 — também tirado do PDF).
+// ---------------------------------------------------------------------
+    const SCRIPT_FILE_ID_BASE = {
+      a: 0x0,
+      c: 0x186a0,
+      t: 0x30d40,
+      r: 0x493e0,
+      m: 0x61a80,
+      e: 0x7a120,
+      f: 0x927c0,
+      v: 0xaae60,
+      i: 0x13d620,
+    };
+    // Aceita "m0292", "m0292.dat", "m0292.xlsx", com ou sem espaço — só olha
+    // pro prefixo (letra + dígitos) no começo do nome, ignora o resto.
+    function computeScriptFileId(fileName) {
+      const m = /^([acmtrefvi])(\d+)/i.exec(String(fileName || "").trim());
+      if (!m) return null;
+      const letter = m[1].toLowerCase();
+      const suffix = parseInt(m[2], 10);
+      const base = SCRIPT_FILE_ID_BASE[letter];
+      if (base === undefined) return null;
+      const id = base + suffix * 0xa;
+      return {
+        letter,
+        suffix,
+        id,
+        hex: "0x" + id.toString(16).toUpperCase().padStart(8, "0"),
+      };
+    }
+
+// ---------------------------------------------------------------------
+// Fase 3 — Editor de OPS (arquivos data/ops/pc/*.ops — XML puro, define os
+// pontos de entrada/gatilho no mapa via tags <EntryBox .../> dentro de
+// <Entrys>...</Entrys>). Formato do atributo confirmado contra o exemplo
+// real citado no PDF (name/next/entry/placeId/flag/pos/distance/cameraDir/
+// entryType/markPos/type). Por ser texto puro (não binário), a estratégia
+// aqui é SEMPRE cirúrgica: nunca reconstrói a linha inteira, só troca o
+// VALOR do atributo pedido na posição exata onde ele já estava — preserva
+// indentação, ordem de atributos, atributos desconhecidos e qualquer outra
+// linha do arquivo (comentários, cabeçalho XML) 100% intactos.
+// ---------------------------------------------------------------------
+    function detectLineEnding(text) {
+      return typeof text === "string" && text.indexOf("\r\n") !== -1 ? "\r\n" : "\n";
+    }
+
+    // Varre o texto e acha toda linha com "<EntryBox" nela, extraindo os
+    // atributos (nome/valor/posição na string) na ordem em que aparecem.
+    function findOpsEntryBoxes(xmlText) {
+      const lineEnding = detectLineEnding(xmlText);
+      const lines = String(xmlText || "").split(/\r\n|\r|\n/);
+      const boxes = [];
+      const attrRe = /([A-Za-z_][\w:-]*)="([^"]*)"/g;
+      lines.forEach((line, lineIndex) => {
+        if (!/<EntryBox\b/.test(line)) return;
+        const attrs = [];
+        attrRe.lastIndex = 0;
+        let m;
+        while ((m = attrRe.exec(line)) !== null) {
+          attrs.push({ name: m[1], value: m[2], start: m.index, end: attrRe.lastIndex });
+        }
+        boxes.push({ lineIndex, attrs });
+      });
+      return { lines, boxes, lineEnding };
+    }
+
+    function opsEntryAttr(box, name) {
+      if (!box) return null;
+      const a = box.attrs.find((x) => x.name === name);
+      return a ? a.value : null;
+    }
+
+    // edits: [{ lineIndex, name, value }]. Retorna { lines, lineEnding } —
+    // chamador junta com lines.join(lineEnding) (ou usa opsTextFromLines).
+    function applyOpsAttrEdits(lines, boxes, edits) {
+      const nextLines = lines.slice();
+      const byLine = new Map();
+      for (const e of edits) {
+        if (!byLine.has(e.lineIndex)) byLine.set(e.lineIndex, []);
+        byLine.get(e.lineIndex).push(e);
+      }
+      for (const [lineIndex, lineEdits] of byLine) {
+        const box = boxes.find((b) => b.lineIndex === lineIndex);
+        if (!box) continue;
+        let line = nextLines[lineIndex];
+        // aplica da direita pra esquerda (maior "start" primeiro) pra não
+        // invalidar as posições dos outros atributos da mesma linha.
+        const resolved = lineEdits
+          .map((e) => ({ ...e, attr: box.attrs.find((a) => a.name === e.name) }))
+          .filter((e) => e.attr)
+          .sort((a, b) => b.attr.start - a.attr.start);
+        for (const e of resolved) {
+          const { start, end } = e.attr;
+          line = line.slice(0, start) + `${e.name}="${e.value}"` + line.slice(end);
+        }
+        nextLines[lineIndex] = line;
+      }
+      return nextLines;
+    }
+
+    function opsTextFromLines(lines, lineEnding) {
+      return lines.join(lineEnding || "\n");
+    }
+
+    // Clona uma EntryBox existente (mesma técnica citada no PDF: "copiar e
+    // colar uma entrada existente") trocando só os atributos informados em
+    // `overrides` — preserva indentação/ordem/atributos não mencionados da
+    // linha original. Retorna a nova linha (string), pronta pra inserir.
+    function cloneOpsEntryBoxLine(box, line, overrides) {
+      const fakeEdits = Object.keys(overrides || {})
+        .filter((name) => box.attrs.some((a) => a.name === name))
+        .map((name) => ({ lineIndex: box.lineIndex, name, value: overrides[name] }));
+      const [newLine] = applyOpsAttrEdits([line], [{ lineIndex: 0, attrs: box.attrs }], fakeEdits.map((e) => ({ ...e, lineIndex: 0 })));
+      return newLine;
+    }
+
+    function insertOpsLine(lines, afterLineIndex, newLine) {
+      const next = lines.slice();
+      next.splice(afterLineIndex + 1, 0, newLine);
+      return next;
+    }
+
+// Fase 3 — Editor de tabela de itens (t_item_en.tbl e formato semelhante).
+//
+// Reverse engenharia feita em cima do ARQUIVO REAL que o usuário mandou
+// (t_item_en.tbl, 311891 bytes) — sem esse arquivo essa função não teria
+// sido escrita (mesma disciplina da Fase 2: nunca escrever parser binário
+// sem amostra real). Estrutura observada, confirmada por varredura no
+// arquivo inteiro em Python antes de portar pra cá:
+//
+//   ... 0xFF 0xFF <flag em MAIÚSCULAS 1-15 chars><NUL>
+//       <127 bytes de dados numéricos — NUNCA tocados, formato ainda não
+//        entendido (preço? peso? stats? — não precisamos saber pra editar
+//        texto com segurança, só precisamos NUNCA escrever nesses bytes)>
+//       <nome em UTF-8><NUL>
+//       <descrição em UTF-8, pode ter '\n' embutido separando o resumo
+//        entre colchetes da descrição longa><NUL>
+//       <padding de zeros até o próximo registro>
+//
+// Cobertura real medida: no arquivo de amostra, ~89% dos registros (834 de
+// 937 declarados no cabeçalho) batem esse padrão com confiança total (nome
+// e descrição decodificam como UTF-8 limpo, sem caractere de controle além
+// de \n). O resto — provavelmente pertence a uma seção com layout de bloco
+// numérico diferente (o cabeçalho do arquivo declara pelo menos 3 seções:
+// "item"=937, "item_q"=307, "item"=288 de novo — possivelmente layouts
+// distintos por seção, não totalmente decifrados) — fica de fora de
+// propósito: nunca aparece na lista editável, nunca é tocado ao salvar.
+// Editar só troca nome/descrição por substituição cirúrgica de bytes
+// (igual ao editor de OPS): o bloco numérico de 127 bytes e tudo mais no
+// arquivo permanece byte a byte idêntico.
+// ---------------------------------------------------------------------
+    const TBL_ITEM_GAP_AFTER_FLAG = 127;
+
+    function tblFindCStringEnd(bytes, start) {
+      let i = start;
+      while (i < bytes.length && bytes[i] !== 0) i++;
+      return i < bytes.length ? i : -1;
+    }
+
+    // true se o texto não tem NENHUM caractere de controle além de '\n' —
+    // usado tanto pra validar um registro encontrado quanto pra impedir
+    // que uma edição do usuário injete um NUL (destruiria o terminador C)
+    // ou outro controle no meio da string.
+    function tblIsCleanText(s, maxLen) {
+      if (typeof s !== "string" || s.length === 0 || s.length >= maxLen) return false;
+      for (let i = 0; i < s.length; i++) {
+        const code = s.codePointAt(i);
+        if (code < 0x20 && s[i] !== "\n") return false;
+      }
+      return true;
+    }
+
+    // Acha, no arquivo inteiro, todo registro reconhecido com confiança.
+    // `bytes` é um Uint8Array. Usa uma "string binária" (1 char = 1 byte)
+    // só pra rodar regex procurando o padrão 0xFF 0xFF + flag maiúscula —
+    // o texto de verdade (nome/descrição) sempre é decodificado do
+    // Uint8Array original como UTF-8, nunca dessa string binária (senão
+    // caracteres multi-byte tipo "↑" quebrariam).
+    function parseItemTable(bytes) {
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      const flagRe = /[A-Z]{1,15}\x00/g;
+      const records = [];
+      let unrecognized = 0;
+      let idx = bin.indexOf("\xff\xff");
+      while (idx !== -1) {
+        flagRe.lastIndex = idx + 2;
+        const m = flagRe.exec(bin);
+        if (m && m.index === idx + 2) {
+          const flag = bin.slice(idx + 2, m.index + m[0].length - 1);
+          const flagEndNul = m.index + m[0].length;
+          const nameStart = flagEndNul + TBL_ITEM_GAP_AFTER_FLAG;
+          const nameEnd = nameStart < bytes.length ? tblFindCStringEnd(bytes, nameStart) : -1;
+          if (nameEnd !== -1) {
+            const descStart = nameEnd + 1;
+            const descEnd = tblFindCStringEnd(bytes, descStart);
+            if (descEnd !== -1) {
+              let name = null;
+              let desc = null;
+              try {
+                name = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(nameStart, nameEnd));
+                desc = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(descStart, descEnd));
+              } catch (e) {
+                name = null;
+              }
+              if (name !== null && desc !== null && tblIsCleanText(name, 80) && tblIsCleanText(desc, 1000)) {
+                records.push({ sentinel: idx, flag, nameStart, nameEnd, name, descStart, descEnd, desc });
+              } else {
+                unrecognized++;
+              }
+            } else {
+              unrecognized++;
+            }
+          } else {
+            unrecognized++;
+          }
+        }
+        idx = bin.indexOf("\xff\xff", idx + 1);
+      }
+      return { records, unrecognized, totalBytes: bytes.length };
+    }
+
+    // Substitui SÓ o trecho [start,end) (nome ou descrição, sem o NUL) por
+    // `value` codificado em UTF-8, deslocando tudo depois — igual à
+    // estratégia cirúrgica do editor de OPS. O NUL original (que fica em
+    // `end`) é preservado, não recriado. IMPORTANTE: como isso muda o
+    // tamanho do arquivo, qualquer outro offset calculado ANTES dessa
+    // chamada fica inválido — o chamador tem que rodar parseItemTable de
+    // novo no resultado antes de aplicar a próxima edição.
+    function applyItemTableFieldEdit(bytes, start, end, value) {
+      const newBytes = new TextEncoder().encode(value);
+      const before = bytes.subarray(0, start);
+      const after = bytes.subarray(end);
+      const merged = new Uint8Array(before.length + newBytes.length + after.length);
+      merged.set(before, 0);
+      merged.set(newBytes, before.length);
+      merged.set(after, before.length + newBytes.length);
+      return merged;
+    }
+
+// Fase 3 — Editor de "tabelas com tag" (t_place.tbl, t_name.tbl — e em
+// tese t_evtable.tbl, mas esse não tem nenhum campo traduzível, só
+// códigos internos de evento, então não ganhou editor de texto aqui).
+//
+// Reverse engenharia feita em cima dos 3 arquivos REAIS que o usuário
+// mandou (t_place.tbl 30026 bytes/474 lugares, t_evtable.tbl 132413
+// bytes/1981 eventos, t_name.tbl 150070 bytes/1581 nomes) — todos os 3
+// compartilham o MESMO cabeçalho de registro:
+//
+//   <tag ASCII, ex "PlaceTableData"><NUL>
+//   <uint16 LE "lenField" = tamanho do registro contado a partir do byte
+//    logo APÓS o próprio lenField>
+//   <uint16 LE "idField">
+//   <N strings NUL-terminadas...>
+//
+// A tag aparece 1x a mais no arquivo do que o número de registros
+// declarado no cabeçalho (a 1ª ocorrência é só o preâmbulo do arquivo,
+// nunca um registro de verdade) — confirmado nos 3 arquivos reais.
+//
+// O que MUDA entre as tabelas é como as strings terminam (analisado campo
+// a campo contra os bytes de verdade, não assumido):
+//   - t_place.tbl: as strings consomem o registro INTEIRO até o próximo
+//     limite (sem sobra nenhuma — confirmado nos 474 registros, zero
+//     exceções). A quantidade de campos varia por registro (10, 11 ou 12
+//     — lugares de nível superior têm menos campos que sub-lugares
+//     dentro de uma cidade), mas o título/nome traduzível está SEMPRE na
+//     mesma posição contando de trás pra frente: 4º campo a partir do
+//     fim, em TODOS os 474 registros, sem exceção.
+//   - t_name.tbl: TODO registro (1581 de 1581, zero exceções) tem
+//     exatamente 6 strings, seguidas de 19 bytes de sobra FIXOS (nunca
+//     tocados — formato não decifrado, provavelmente flags/posição). O
+//     nome de exibição do personagem é sempre o 1º campo.
+//
+// lenField nem sempre bate 100% com o tamanho real no arquivo ORIGINAL
+// (achei 4 de 1581 registros em t_name.tbl, todos com um glifo "①"/"②"
+// no nome, onde o lenField já vem 2 bytes errado — provavelmente bug de
+// alguma ferramenta de conversão anterior que gerou esse .tbl a partir do
+// formato original do jogo). Por isso a localização de registro NUNCA usa
+// lenField como fonte de verdade — só a posição da PRÓXIMA tag/fim do
+// arquivo. Mas ao EDITAR, o lenField do registro editado é sempre
+// recalculado do zero (não ajustado por delta) — não propaga esse tipo
+// de inconsistência herdada.
+// ---------------------------------------------------------------------
+    function tblBytesToBinaryString(bytes) {
+      let s = "";
+      for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+      return s;
+    }
+
+    // Acha toda ocorrência de `tagString + "\0"` no arquivo (posição em
+    // bytes) — usa a mesma técnica "string binária" (1 char = 1 byte) do
+    // editor de item, só pra permitir usar String.indexOf num Uint8Array.
+    function tblFindTagPositions(bytes, tagString) {
+      const tagBytes = new TextEncoder().encode(tagString + "\0");
+      const bin = tblBytesToBinaryString(bytes);
+      const tagBin = tblBytesToBinaryString(tagBytes);
+      const positions = [];
+      let idx = bin.indexOf(tagBin);
+      while (idx !== -1) {
+        positions.push(idx);
+        idx = bin.indexOf(tagBin, idx + 1);
+      }
+      return { positions, tagFullLen: tagBytes.length };
+    }
+
+    function tblReadRecordHeader(bytes, start, tagFullLen) {
+      const p = start + tagFullLen;
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      return { fieldsStart: p + 4, lenField: view.getUint16(p, true), idField: view.getUint16(p + 2, true) };
+    }
+
+    function tblDecodeStringRange(bytes, start, end) {
+      try {
+        return new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(start, end));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Recalcula e escreve o lenField (2 bytes LE, logo após a tag) de UM
+    // registro depois de editar seu texto. `newTotalRecordSize` é o
+    // tamanho do registro INTEIRO (da tag até o fim) já com a edição
+    // aplicada.
+    function tblRewriteLenField(bytes, recordStart, tagFullLen, newTotalRecordSize) {
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      view.setUint16(recordStart + tagFullLen, newTotalRecordSize - (tagFullLen + 2), true);
+    }
+
+    // Substitui o texto de UM registro (splice cirúrgico, igual ao editor
+    // de item) E corrige o lenField DESSE registro — diferença chave em
+    // relação ao t_item_en.tbl, que não tem campo de tamanho nenhum pra
+    // manter em dia. `field` é { start, end } (limites do texto antigo,
+    // sem o NUL — vêm de parsePlaceTable/parseNameTable). Retorna um
+    // Uint8Array novo; o chamador tem que reparsear antes da próxima
+    // edição (mesma disciplina do editor de OPS/item).
+    function applyTaggedTableFieldEdit(bytes, recordStart, recordEnd, tagFullLen, field, value) {
+      const newTextBytes = new TextEncoder().encode(value);
+      const before = bytes.subarray(0, field.start);
+      const after = bytes.subarray(field.end);
+      const merged = new Uint8Array(before.length + newTextBytes.length + after.length);
+      merged.set(before, 0);
+      merged.set(newTextBytes, before.length);
+      merged.set(after, before.length + newTextBytes.length);
+      const delta = newTextBytes.length - (field.end - field.start);
+      tblRewriteLenField(merged, recordStart, tagFullLen, recordEnd - recordStart + delta);
+      return merged;
+    }
+
+    // t_place.tbl — título/nome do lugar = 4º campo contando do FIM.
+    function parsePlaceTable(bytes) {
+      const { positions, tagFullLen } = tblFindTagPositions(bytes, "PlaceTableData");
+      if (positions.length < 2) return { records: [], unrecognized: 0, headerCount: 0 };
+      const recordStarts = positions.slice(1);
+      const records = [];
+      let unrecognized = 0;
+      for (let i = 0; i < recordStarts.length; i++) {
+        const start = recordStarts[i];
+        const end = i + 1 < recordStarts.length ? recordStarts[i + 1] : bytes.length;
+        const { fieldsStart, idField } = tblReadRecordHeader(bytes, start, tagFullLen);
+        let p = fieldsStart;
+        const strings = [];
+        let ok = true;
+        while (p < end) {
+          const strEnd = tblFindCStringEnd(bytes, p);
+          if (strEnd === -1 || strEnd >= end) { ok = false; break; }
+          strings.push({ start: p, end: strEnd });
+          p = strEnd + 1;
+        }
+        if (!ok || p !== end || strings.length < 4) {
+          unrecognized++;
+          continue;
+        }
+        const field = strings[strings.length - 4];
+        const text = tblDecodeStringRange(bytes, field.start, field.end);
+        if (text === null || !tblIsCleanText(text, 200)) {
+          unrecognized++;
+          continue;
+        }
+        records.push({ start, end, tagFullLen, idField, fieldStart: field.start, fieldEnd: field.end, text });
+      }
+      return { records, unrecognized, headerCount: recordStarts.length };
+    }
+
+    // t_name.tbl — exatamente 6 campos por registro, o nome de exibição é
+    // sempre o 1º; 19 bytes de sobra depois, nunca tocados.
+    function parseNameTable(bytes) {
+      const { positions, tagFullLen } = tblFindTagPositions(bytes, "NameTableData");
+      if (positions.length < 2) return { records: [], unrecognized: 0, headerCount: 0 };
+      const recordStarts = positions.slice(1);
+      const records = [];
+      let unrecognized = 0;
+      for (let i = 0; i < recordStarts.length; i++) {
+        const start = recordStarts[i];
+        const end = i + 1 < recordStarts.length ? recordStarts[i + 1] : bytes.length;
+        const { fieldsStart, idField } = tblReadRecordHeader(bytes, start, tagFullLen);
+        let p = fieldsStart;
+        const strings = [];
+        let ok = true;
+        for (let k = 0; k < 6; k++) {
+          const strEnd = tblFindCStringEnd(bytes, p);
+          if (strEnd === -1 || strEnd >= end) { ok = false; break; }
+          strings.push({ start: p, end: strEnd });
+          p = strEnd + 1;
+        }
+        if (!ok) {
+          unrecognized++;
+          continue;
+        }
+        const field = strings[0];
+        const text = tblDecodeStringRange(bytes, field.start, field.end);
+        if (text === null || !tblIsCleanText(text, 120)) {
+          unrecognized++;
+          continue;
+        }
+        records.push({ start, end, tagFullLen, idField, fieldStart: field.start, fieldEnd: field.end, text });
+      }
+      return { records, unrecognized, headerCount: recordStarts.length };
+    }
+
+
     function baseName(fileName) {
       return fileName.replace(/\.xlsx$/i, "");
     }
@@ -2603,6 +3115,19 @@
     async function downloadTmxFile(content, filename) {
       const blob = new Blob([content], { type: "application/x-tmx+xml;charset=utf-8" });
       await saveBlobToDisk(blob, filename, "Memória de tradução (TMX)", "application/xml", [".tmx"]);
+    }
+
+    // Fase 3: baixa os bytes de um .tbl editado (binário, não texto — Blob
+    // direto do Uint8Array, sem passar por string/charset)
+    async function downloadTblFile(bytes, filename) {
+      const blob = new Blob([bytes], { type: "application/octet-stream" });
+      await saveBlobToDisk(blob, filename, "Tabela binária CS3", "application/octet-stream", [".tbl"]);
+    }
+
+    // Fase 3: baixa o XML de um .ops editado (mesmo padrão do TMX, extensão certa)
+    async function downloadOpsFile(content, filename) {
+      const blob = new Blob([content], { type: "application/xml;charset=utf-8" });
+      await saveBlobToDisk(blob, filename, "Arquivo OPS (pontos de entrada)", "application/xml", [".ops"]);
     }
 
     function escapeXml(s) {
@@ -6962,6 +7487,609 @@
       );
     }
 
+    // ---------------------------------------------------------------------
+    // Fase 3 — Assistente de ID de arquivo novo. Componente autocontido (não
+    // precisa de arquivo aberto nem do decompiler) — só aplica a fórmula
+    // computeScriptFileId (ver core.js), conferida a mão contra o exemplo
+    // do PDF de documentação (m0292 -> 0x000625E8).
+    // ---------------------------------------------------------------------
+    function FileIdCalculator() {
+      const [name, setName] = React.useState("");
+      const result = React.useMemo(() => (name.trim() ? computeScriptFileId(name) : null), [name]);
+      const trimmed = name.trim();
+      return (
+        <div className="scene-editor id-calc">
+          <div className="scene-editor-note mono" style={{ marginBottom: 4 }}>
+            Fórmula do PDF de documentação: ID = base do prefixo + (número do arquivo × 0xA). Só cobre os 9 prefixos
+            documentados (a/c/t/r/m/e/f/v/i) — os outros não têm fórmula conhecida ainda.
+          </div>
+          <div className="id-calc-row">
+            <input
+              className="id-calc-input mono"
+              placeholder="nome do arquivo, ex: m0292"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          {trimmed && !result && (
+            <div className="id-calc-hint">
+              Prefixo "{trimmed[0] || ""}" não reconhecido, ou faltou o número — use letra + dígitos (ex: m0292, a0000, t0400).
+            </div>
+          )}
+          {result && (
+            <div className="id-calc-result mono">
+              <div>
+                ID hexadecimal: <strong>{result.hex}</strong>
+              </div>
+              <div className="scene-func-count">decimal: {result.id} · prefixo "{result.letter}" · número {result.suffix}</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ---------------------------------------------------------------------
+    // Fase 3 — Editor de OPS (data/ops/pc/*.ops, XML puro com as tags
+    // <EntryBox .../> que definem os pontos de entrada/gatilho no mapa).
+    // Estratégia de edição sempre cirúrgica (ver findOpsEntryBoxes/
+    // applyOpsAttrEdits em core.js): nunca reconstrói a linha inteira, só
+    // troca o valor do atributo escolhido — preserva 100% do resto do
+    // arquivo (comentários, indentação, atributos não editados).
+    //
+    // Aviso: o formato foi validado contra o exemplo citado no PDF de
+    // documentação, não contra um .ops real enviado pelo usuário — testar
+    // com cautela antes de usar num arquivo de produção (ver nota na tela).
+    // ---------------------------------------------------------------------
+    const OPS_ENTRY_FIELDS = [
+      { name: "name", label: "Nome (bate com a função na cena)" },
+      { name: "next", label: "Próximo mapa (next)" },
+      { name: "entry", label: "Entrada ao voltar (entry)" },
+      { name: "placeId", label: "ID do lugar (t_place.tbl)" },
+      { name: "flag", label: "Flag" },
+      { name: "pos", label: "Posição (x, y, z, ângulo, ...)" },
+      { name: "distance", label: "Distância de gatilho" },
+      { name: "cameraDir", label: "Direção de câmera" },
+      { name: "entryType", label: "Tipo de entrada" },
+      { name: "markPos", label: "Posição no minimapa" },
+      { name: "type", label: "Tipo (EB_EVENT etc.)" },
+    ];
+
+    function OpsEntryForm({ box, onFieldChange }) {
+      return (
+        <div className="ops-entry-form">
+          {OPS_ENTRY_FIELDS.map((f) => {
+            const value = opsEntryAttr(box, f.name);
+            const exists = value !== null;
+            return (
+              <label key={f.name} className="ops-field">
+                <span className="ops-field-label">{f.label}</span>
+                <input
+                  className="mono"
+                  value={exists ? value : ""}
+                  onChange={(e) => onFieldChange(f.name, e.target.value)}
+                  placeholder={exists ? "" : "(esta entrada não tem esse atributo)"}
+                  disabled={!exists}
+                  title={exists ? "" : "não mexe — o atributo não existe nesta EntryBox, criar um novo exigiria reconstruir a linha inteira"}
+                />
+              </label>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function OpsEditorPanel() {
+      const [xmlText, setXmlText] = React.useState("");
+      const [pasteText, setPasteText] = React.useState("");
+      const [parsed, setParsed] = React.useState(null);
+      const [selectedIndex, setSelectedIndex] = React.useState(null);
+      const [message, setMessage] = React.useState("");
+      const tauri = isTauriRuntime();
+
+      const loadXml = (text) => {
+        try {
+          const p = findOpsEntryBoxes(text);
+          setXmlText(text);
+          setParsed(p);
+          setSelectedIndex(p.boxes.length ? 0 : null);
+          setMessage(`${p.boxes.length} EntryBox encontrada${p.boxes.length === 1 ? "" : "s"}.`);
+        } catch (e) {
+          setMessage("Não consegui ler esse XML: " + (e && e.message ? e.message : e));
+        }
+      };
+
+      const openOpsFile = React.useCallback(async () => {
+        if (!window.__TAURI__) return;
+        try {
+          const picked = await window.__TAURI__.dialog.open({
+            multiple: false,
+            title: "Escolher arquivo .ops",
+            filters: [{ name: "OPS (pontos de entrada)", extensions: ["ops"] }],
+          });
+          if (!picked) return;
+          const path = Array.isArray(picked) ? picked[0] : picked;
+          const bytes = await window.__TAURI__.core.invoke("read_file_bytes", { path });
+          const text = new TextDecoder("utf-8").decode(new Uint8Array(bytes));
+          loadXml(text);
+        } catch (e) {
+          console.error(e);
+          setMessage("Falha ao abrir: " + (e && e.message ? e.message : e));
+        }
+      }, []);
+
+      const box = parsed && selectedIndex != null ? parsed.boxes[selectedIndex] : null;
+
+      const fieldChange = (name, value) => {
+        if (!parsed || !box) return;
+        const newLines = applyOpsAttrEdits(parsed.lines, parsed.boxes, [{ lineIndex: box.lineIndex, name, value }]);
+        const newText = opsTextFromLines(newLines, parsed.lineEnding);
+        setXmlText(newText);
+        setParsed(findOpsEntryBoxes(newText));
+      };
+
+      const duplicateEntry = () => {
+        if (!parsed || !box) return;
+        const currentName = opsEntryAttr(box, "name") || "ENTRY";
+        const clone = cloneOpsEntryBoxLine(box, parsed.lines[box.lineIndex], { name: currentName + "_COPIA" });
+        const newLines = insertOpsLine(parsed.lines, box.lineIndex, clone);
+        const newText = opsTextFromLines(newLines, parsed.lineEnding);
+        const newParsed = findOpsEntryBoxes(newText);
+        setXmlText(newText);
+        setParsed(newParsed);
+        setSelectedIndex(newParsed.boxes.findIndex((b) => b.lineIndex === box.lineIndex + 1));
+        setMessage(`Entrada duplicada como "${currentName}_COPIA" — edite o nome/posição antes de salvar.`);
+      };
+
+      const downloadXml = async () => {
+        if (!xmlText) return;
+        await downloadOpsFile(xmlText, "editado.ops");
+      };
+
+      const startOver = () => {
+        setParsed(null);
+        setXmlText("");
+        setPasteText("");
+        setSelectedIndex(null);
+        setMessage("");
+      };
+
+      return (
+        <div className="scene-editor ops-editor">
+          <div className="scene-editor-toolbar">
+            <div className="scene-editor-summary mono">
+              {parsed ? `${parsed.boxes.length} EntryBox` : "nenhum .ops carregado"}
+            </div>
+            <div className="scene-editor-actions">
+              {tauri && (
+                <button className="btn subtle" onClick={openOpsFile}>
+                  <MapPin size={13} /> Abrir .ops…
+                </button>
+              )}
+              {parsed && (
+                <React.Fragment>
+                  <button className="btn subtle" onClick={duplicateEntry} disabled={!box}>
+                    <Copy size={13} /> Duplicar entrada
+                  </button>
+                  <button className="btn subtle" onClick={downloadXml}>
+                    <Download size={13} /> Baixar .ops editado
+                  </button>
+                  <button className="btn subtle" onClick={startOver}>
+                    <XIcon size={13} /> Carregar outro
+                  </button>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+          <div className="scene-editor-note mono">
+            Edição sempre cirúrgica: só troca o valor do atributo escolhido, nunca reconstrói a linha — mas o formato foi
+            validado contra o exemplo do PDF de documentação, não contra um .ops real ainda. Confira o arquivo gerado
+            antes de usar em produção.
+          </div>
+          {message && <div className="scene-editor-note mono">{message}</div>}
+          {!parsed && (
+            <div className="ops-paste">
+              <span className="u-micro">{tauri ? "Ou cole o conteúdo do .ops aqui:" : "Cole o conteúdo do .ops aqui:"}</span>
+              <textarea
+                className="mono"
+                rows={8}
+                placeholder="<Entrys>&#10;  <EntryBox name=&quot;...&quot; .../>&#10;</Entrys>"
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+              />
+              <button className="btn" onClick={() => pasteText.trim() && loadXml(pasteText)} disabled={!pasteText.trim()}>
+                <FilePlus size={13} /> Carregar XML colado
+              </button>
+            </div>
+          )}
+          {parsed && (
+            <div className="scene-editor-body">
+              <div className="scene-editor-sidebar">
+                <div className="scene-func-list">
+                  {parsed.boxes.length === 0 && <div className="scene-func-empty">Nenhuma &lt;EntryBox&gt; encontrada nesse arquivo.</div>}
+                  {parsed.boxes.map((b, i) => (
+                    <button
+                      key={b.lineIndex}
+                      className={`scene-func-item ${i === selectedIndex ? "active" : ""}`}
+                      onClick={() => setSelectedIndex(i)}
+                    >
+                      <span className="scene-func-dot" />
+                      <span className="scene-func-name mono">{opsEntryAttr(b, "name") || "(sem nome)"}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="scene-editor-main">
+                {!box && <div className="scene-editor-placeholder">Escolha uma entrada à esquerda.</div>}
+                {box && <OpsEntryForm box={box} onFieldChange={fieldChange} />}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ---------------------------------------------------------------------
+    // Fase 3 — Editor de tabela de itens (t_item_en.tbl e semelhantes).
+    // Componente autocontido, igual ao editor de OPS. Suporte experimental
+    // e deliberadamente conservador: só reconhece/edita registros de texto
+    // (nome + descrição) cujo formato bate com confiança total — o resto
+    // do arquivo (bloco numérico de cada item, registros que não batem o
+    // padrão) NUNCA é tocado. Ver comentário de parseItemTable em core.js
+    // pra detalhes de como isso foi descoberto a partir do arquivo real
+    // que o usuário enviou.
+    // ---------------------------------------------------------------------
+    function ItemTableEditorPanel() {
+      const [fileName, setFileName] = React.useState("");
+      const [bytes, setBytes] = React.useState(null);
+      const [parsed, setParsed] = React.useState(null);
+      const [selectedIndex, setSelectedIndex] = React.useState(null);
+      const [search, setSearch] = React.useState("");
+      const [message, setMessage] = React.useState("");
+      const tauri = isTauriRuntime();
+      const fileInputRef = React.useRef(null);
+
+      const loadBytes = (arr, name) => {
+        try {
+          const p = parseItemTable(arr);
+          setBytes(arr);
+          setFileName(name);
+          setParsed(p);
+          setSelectedIndex(p.records.length ? 0 : null);
+          setMessage(
+            `${p.records.length} itens reconhecidos com confiança (${p.unrecognized} ignorados, formato não bateu) — ${p.totalBytes} bytes no total.`
+          );
+        } catch (e) {
+          console.error(e);
+          setMessage("Não consegui ler esse arquivo: " + (e && e.message ? e.message : e));
+        }
+      };
+
+      const onPickFile = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const buf = await file.arrayBuffer();
+        loadBytes(new Uint8Array(buf), file.name);
+        e.target.value = "";
+      };
+
+      const openTblFile = React.useCallback(async () => {
+        if (!window.__TAURI__) return;
+        try {
+          const picked = await window.__TAURI__.dialog.open({
+            multiple: false,
+            title: "Escolher arquivo .tbl",
+            filters: [{ name: "Tabela CS3", extensions: ["tbl"] }],
+          });
+          if (!picked) return;
+          const path = Array.isArray(picked) ? picked[0] : picked;
+          const raw = await window.__TAURI__.core.invoke("read_file_bytes", { path });
+          loadBytes(new Uint8Array(raw), path.split(/[\\/]/).pop());
+        } catch (e) {
+          console.error(e);
+          setMessage("Falha ao abrir: " + (e && e.message ? e.message : e));
+        }
+      }, []);
+
+      const rec = parsed && selectedIndex != null ? parsed.records[selectedIndex] : null;
+
+      const fieldChange = (field, value) => {
+        if (!bytes || !rec) return;
+        const maxLen = field === "name" ? 80 : 1000;
+        if (!tblIsCleanText(value, maxLen)) {
+          setMessage(
+            "Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada."
+          );
+          return;
+        }
+        const start = field === "name" ? rec.nameStart : rec.descStart;
+        const end = field === "name" ? rec.nameEnd : rec.descEnd;
+        const newBytes = applyItemTableFieldEdit(bytes, start, end, value);
+        setBytes(newBytes);
+        setParsed(parseItemTable(newBytes));
+      };
+
+      const downloadTbl = async () => {
+        if (!bytes) return;
+        await downloadTblFile(bytes, fileName || "editado.tbl");
+      };
+
+      const startOver = () => {
+        setBytes(null);
+        setParsed(null);
+        setFileName("");
+        setSelectedIndex(null);
+        setSearch("");
+        setMessage("");
+      };
+
+      const filteredIndices = React.useMemo(() => {
+        if (!parsed) return [];
+        const q = search.trim().toLowerCase();
+        const all = parsed.records.map((_, i) => i);
+        if (!q) return all;
+        return all.filter(
+          (i) => parsed.records[i].name.toLowerCase().includes(q) || parsed.records[i].desc.toLowerCase().includes(q)
+        );
+      }, [parsed, search]);
+
+      return (
+        <div className="scene-editor tbl-editor">
+          <div className="scene-editor-toolbar">
+            <div className="scene-editor-summary mono">
+              {parsed ? `${parsed.records.length} itens reconhecidos` : "nenhum .tbl carregado"}
+            </div>
+            <div className="scene-editor-actions">
+              {tauri && (
+                <button className="btn subtle" onClick={openTblFile}>
+                  <Database size={13} /> Abrir .tbl…
+                </button>
+              )}
+              <button className="btn subtle" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+                <Upload size={13} /> Escolher arquivo…
+              </button>
+              <input ref={fileInputRef} type="file" accept=".tbl" style={{ display: "none" }} onChange={onPickFile} />
+              {bytes && (
+                <React.Fragment>
+                  <button className="btn subtle" onClick={downloadTbl}>
+                    <Download size={13} /> Baixar .tbl editado
+                  </button>
+                  <button className="btn subtle" onClick={startOver}>
+                    <XIcon size={13} /> Carregar outro
+                  </button>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+          <div className="scene-editor-note mono">
+            Suporte experimental e conservador: reverse engenharia feita em cima de UM arquivo real (t_item_en.tbl) —
+            só reconhece/edita registros cujo texto (nome + descrição) bate o padrão com confiança total (testado:
+            834 de 937 itens desse arquivo, ~89%). O resto — e todo o bloco de dados numéricos de cada item — nunca é
+            tocado. Cada edição troca só os bytes do texto escolhido, deslocando o resto do arquivo.
+          </div>
+          {message && <div className="scene-editor-note mono">{message}</div>}
+          {!bytes && <div className="scene-editor-placeholder">Abra um arquivo .tbl pra começar.</div>}
+          {bytes && parsed && (
+            <div className="scene-editor-body">
+              <div className="scene-editor-sidebar">
+                <div className="search-box">
+                  <Search size={14} color="#A9967A" />
+                  <input placeholder="Buscar item…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div className="scene-func-list">
+                  {filteredIndices.length === 0 && <div className="scene-func-empty">Nenhum item encontrado.</div>}
+                  {filteredIndices.map((i) => (
+                    <button
+                      key={i}
+                      className={`scene-func-item ${i === selectedIndex ? "active" : ""}`}
+                      onClick={() => setSelectedIndex(i)}
+                    >
+                      <span className="scene-func-dot" />
+                      <span className="scene-func-name mono">{parsed.records[i].name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="scene-editor-main">
+                {!rec && <div className="scene-editor-placeholder">Escolha um item à esquerda.</div>}
+                {rec && (
+                  <div className="tbl-item-form">
+                    <label className="ops-field">
+                      <span className="ops-field-label">Nome</span>
+                      <input className="mono" value={rec.name} onChange={(e) => fieldChange("name", e.target.value)} />
+                    </label>
+                    <label className="ops-field">
+                      <span className="ops-field-label">Descrição (pode ter quebra de linha)</span>
+                      <textarea
+                        className="mono"
+                        rows={5}
+                        value={rec.desc}
+                        onChange={(e) => fieldChange("desc", e.target.value)}
+                      />
+                    </label>
+                    <div className="scene-func-count">
+                      flag interna: {rec.flag} · bloco de dados (127 bytes) não editável — formato ainda não decifrado
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ---------------------------------------------------------------------
+    // Fase 3 — Editor genérico de "tabelas com tag" (t_place.tbl e
+    // t_name.tbl compartilham a MESMA forma de registro depois de
+    // parseados — { start, end, tagFullLen, idField, fieldStart, fieldEnd,
+    // text } — e a MESMA função de edição, applyTaggedTableFieldEdit, que
+    // já corrige o lenField sozinha. Só o que muda entre os dois é qual
+    // `parseFn` usar, o rótulo do campo e o tamanho máximo aceito. Ver
+    // core.js pra como cada formato foi descoberto a partir dos arquivos
+    // reais que o usuário enviou.
+    // ---------------------------------------------------------------------
+    function TaggedTableEditorPanel({ title, icon: IconComp, parseFn, fieldLabel, maxLen, dialogFilterName, extensions, note }) {
+      const [fileName, setFileName] = React.useState("");
+      const [bytes, setBytes] = React.useState(null);
+      const [parsed, setParsed] = React.useState(null);
+      const [selectedIndex, setSelectedIndex] = React.useState(null);
+      const [search, setSearch] = React.useState("");
+      const [message, setMessage] = React.useState("");
+      const tauri = isTauriRuntime();
+      const fileInputRef = React.useRef(null);
+
+      const loadBytes = (arr, name) => {
+        try {
+          const p = parseFn(arr);
+          setBytes(arr);
+          setFileName(name);
+          setParsed(p);
+          setSelectedIndex(p.records.length ? 0 : null);
+          setMessage(`${p.records.length} registros reconhecidos (${p.unrecognized} ignorados, formato não bateu) — ${arr.length} bytes no total.`);
+        } catch (e) {
+          console.error(e);
+          setMessage("Não consegui ler esse arquivo: " + (e && e.message ? e.message : e));
+        }
+      };
+
+      const onPickFile = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const buf = await file.arrayBuffer();
+        loadBytes(new Uint8Array(buf), file.name);
+        e.target.value = "";
+      };
+
+      const openFile = React.useCallback(async () => {
+        if (!window.__TAURI__) return;
+        try {
+          const picked = await window.__TAURI__.dialog.open({
+            multiple: false,
+            title: `Escolher arquivo ${extensions.map((x) => "." + x).join("/")}`,
+            filters: [{ name: dialogFilterName, extensions }],
+          });
+          if (!picked) return;
+          const path = Array.isArray(picked) ? picked[0] : picked;
+          const raw = await window.__TAURI__.core.invoke("read_file_bytes", { path });
+          loadBytes(new Uint8Array(raw), path.split(/[\\/]/).pop());
+        } catch (e) {
+          console.error(e);
+          setMessage("Falha ao abrir: " + (e && e.message ? e.message : e));
+        }
+      }, []);
+
+      const rec = parsed && selectedIndex != null ? parsed.records[selectedIndex] : null;
+
+      const fieldChange = (value) => {
+        if (!bytes || !rec) return;
+        if (!tblIsCleanText(value, maxLen)) {
+          setMessage("Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada.");
+          return;
+        }
+        const newBytes = applyTaggedTableFieldEdit(bytes, rec.start, rec.end, rec.tagFullLen, { start: rec.fieldStart, end: rec.fieldEnd }, value);
+        setBytes(newBytes);
+        setParsed(parseFn(newBytes));
+      };
+
+      const downloadTbl = async () => {
+        if (!bytes) return;
+        await downloadTblFile(bytes, fileName || `editado.${extensions[0]}`);
+      };
+
+      const startOver = () => {
+        setBytes(null);
+        setParsed(null);
+        setFileName("");
+        setSelectedIndex(null);
+        setSearch("");
+        setMessage("");
+      };
+
+      const filteredIndices = React.useMemo(() => {
+        if (!parsed) return [];
+        const q = search.trim().toLowerCase();
+        const all = parsed.records.map((_, i) => i);
+        if (!q) return all;
+        return all.filter((i) => parsed.records[i].text.toLowerCase().includes(q));
+      }, [parsed, search]);
+
+      return (
+        <div className="scene-editor tbl-editor">
+          <div className="scene-editor-toolbar">
+            <div className="scene-editor-summary mono">
+              {parsed ? `${parsed.records.length} registros reconhecidos` : `nenhum arquivo carregado`}
+            </div>
+            <div className="scene-editor-actions">
+              {tauri && (
+                <button className="btn subtle" onClick={openFile}>
+                  {IconComp ? <IconComp size={13} /> : <Database size={13} />} Abrir…
+                </button>
+              )}
+              <button className="btn subtle" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+                <Upload size={13} /> Escolher arquivo…
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={extensions.map((x) => "." + x).join(",")}
+                style={{ display: "none" }}
+                onChange={onPickFile}
+              />
+              {bytes && (
+                <React.Fragment>
+                  <button className="btn subtle" onClick={downloadTbl}>
+                    <Download size={13} /> Baixar arquivo editado
+                  </button>
+                  <button className="btn subtle" onClick={startOver}>
+                    <XIcon size={13} /> Carregar outro
+                  </button>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+          {note && <div className="scene-editor-note mono">{note}</div>}
+          {message && <div className="scene-editor-note mono">{message}</div>}
+          {!bytes && <div className="scene-editor-placeholder">Abra um arquivo pra começar.</div>}
+          {bytes && parsed && (
+            <div className="scene-editor-body">
+              <div className="scene-editor-sidebar">
+                <div className="search-box">
+                  <Search size={14} color="#A9967A" />
+                  <input placeholder="Buscar…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div className="scene-func-list">
+                  {filteredIndices.length === 0 && <div className="scene-func-empty">Nenhum registro encontrado.</div>}
+                  {filteredIndices.map((i) => (
+                    <button
+                      key={i}
+                      className={`scene-func-item ${i === selectedIndex ? "active" : ""}`}
+                      onClick={() => setSelectedIndex(i)}
+                    >
+                      <span className="scene-func-dot" />
+                      <span className="scene-func-name mono">{parsed.records[i].text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="scene-editor-main">
+                {!rec && <div className="scene-editor-placeholder">Escolha um registro à esquerda.</div>}
+                {rec && (
+                  <div className="tbl-item-form">
+                    <label className="ops-field">
+                      <span className="ops-field-label">{fieldLabel}</span>
+                      <input className="mono" value={rec.text} onChange={(e) => fieldChange(e.target.value)} />
+                    </label>
+                    <div className="scene-func-count">id interno: {rec.idField} · resto do registro não editável — formato ainda não decifrado</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     function QaPanel({ results, multiDoc, onJump, onIgnore, onRepairCodes, onClearTranslation, canRepair, onChangeTranslation, onBlurTranslation }) {
       const [page, setPage] = React.useState(1);
       const [issueFilter, setIssueFilter] = React.useState("all");
@@ -10596,6 +11724,41 @@
                           <FileSpreadsheet size={13} /> Editor de Cenas
                         </button>
                         <button
+                          className={`btn subtle ${activePanel === "idcalc" ? "active-btn" : ""}`}
+                          onClick={() => togglePanel("idcalc")}
+                          title="Calcular o ID hexadecimal de um arquivo novo (fórmula do PDF de documentação: base do prefixo + número × 0xA)"
+                        >
+                          <Calculator size={13} /> ID de arquivo novo
+                        </button>
+                        <button
+                          className={`btn subtle ${activePanel === "ops" ? "active-btn" : ""}`}
+                          onClick={() => togglePanel("ops")}
+                          title="Editar pontos de entrada/gatilho no mapa (arquivos .ops — XML de data/ops/pc)"
+                        >
+                          <MapPin size={13} /> Editor de OPS
+                        </button>
+                        <button
+                          className={`btn subtle ${activePanel === "tbl" ? "active-btn" : ""}`}
+                          onClick={() => togglePanel("tbl")}
+                          title="Editar nome/descrição de itens num arquivo .tbl (ex: t_item_en.tbl) — suporte experimental, só texto reconhecido com confiança"
+                        >
+                          <Database size={13} /> Itens (.tbl)
+                        </button>
+                        <button
+                          className={`btn subtle ${activePanel === "tblname" ? "active-btn" : ""}`}
+                          onClick={() => togglePanel("tblname")}
+                          title="Editar nome de exibição de personagens num arquivo .tbl (ex: t_name.tbl)"
+                        >
+                          <Users size={13} /> Nomes (.tbl)
+                        </button>
+                        <button
+                          className={`btn subtle ${activePanel === "tblplace" ? "active-btn" : ""}`}
+                          onClick={() => togglePanel("tblplace")}
+                          title="Editar título de lugares/capítulos num arquivo .tbl (ex: t_place.tbl)"
+                        >
+                          <MapPin size={13} /> Lugares (.tbl)
+                        </button>
+                        <button
                           className="btn subtle"
                           onClick={undoLastAction}
                           disabled={undoStack.length === 0}
@@ -10953,6 +12116,38 @@
                         lastResultMessage={sceneMessage}
                       />
                     )}
+
+                    {activePanel === "idcalc" && <FileIdCalculator />}
+
+                    {activePanel === "ops" && <OpsEditorPanel />}
+
+                    {activePanel === "tblname" && (
+                      <TaggedTableEditorPanel
+                        title="Editor de Nomes (.tbl)"
+                        icon={Users}
+                        parseFn={parseNameTable}
+                        fieldLabel="Nome de exibição"
+                        maxLen={120}
+                        dialogFilterName="Tabela de nomes CS3"
+                        extensions={["tbl"]}
+                        note="Reconhece nome de exibição de personagens (ex: t_name.tbl) — testado contra o arquivo real do usuário: 1581 de 1581 registros (100%). Só esse campo é editável; o resto do registro (modelo 3D, variantes internas, 19 bytes de dados não decifrados) nunca é tocado."
+                      />
+                    )}
+
+                    {activePanel === "tblplace" && (
+                      <TaggedTableEditorPanel
+                        title="Editor de Lugares (.tbl)"
+                        icon={MapPin}
+                        parseFn={parsePlaceTable}
+                        fieldLabel="Título do lugar/capítulo"
+                        maxLen={200}
+                        dialogFilterName="Tabela de lugares CS3"
+                        extensions={["tbl"]}
+                        note="Reconhece o título de lugares/capítulos (ex: t_place.tbl) — testado contra o arquivo real do usuário: 474 de 474 registros (100%). Só esse campo é editável; o resto do registro (posição, hierarquia de sub-lugares, flags) nunca é tocado."
+                      />
+                    )}
+
+                    {activePanel === "tbl" && <ItemTableEditorPanel />}
 
                     {activePanel === "settings" && (
                       <div className="settings-panel">
