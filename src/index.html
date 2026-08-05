@@ -2375,8 +2375,28 @@
     //  2) células tipadas "dialog" ou "string" especificamente nas linhas
     //     onde o OP Code vale 39 (confirmado na planilha como o opcode que
     //     imprime a string de diálogo).
+    // Filtro de "isso é técnico/debug, não traduzível" — mirror exato de
+    // isDebugOrTechnicalString do core.js. Ver comentário lá pra explicação
+    // completa (validado contra o corpus real inteiro de 364 cenas).
+    function isDebugOrTechnicalString(value) {
+      const s = String(value).trim();
+      if (!s) return true;
+      if (/^0x[0-9a-fA-F]+$/.test(s)) return true; // hex
+      if (/^-?\d+(\.\d+)?(\s*,\s*-?\d+(\.\d+)?){0,3}$/.test(s)) return true; // número/coordenada
+      if (/^[a-z][a-z0-9_]*$/.test(s)) return true; // identificador tudo-minúsculo (tbox00, go_t5610, chr001...)
+      if (/^(EV_|TK_|BTL_|AniEv|AniSit|AniField|C_CHR|FC_CHR|Ani[A-Z])/.test(s)) return true; // prefixos técnicos conhecidos
+      if (/^[A-Z0-9_]+$/.test(s) && s.includes("_")) return true; // CONSTANTE_COM_UNDERSCORE
+      if (/\b(test|debug)\b/i.test(s)) return true; // rótulo de menu de QA/debug
+      return false;
+    }
+
     const DIALOG_OP_CODE = 39;
     const OP_CODE_COL = 1; // coluna B (índice 1, já que A=0)
+    // OP29 = "Criar personagem" — coluna absoluta 4 (E) é sempre o nome de
+    // exibição do personagem/NPC/objeto criado (mirror do core.js, ver lá
+    // a explicação completa de por que OP41 foi investigado e excluído).
+    const NAME_OP_CODE = 29;
+    const NAME_OP_COLUMN = 4;
 
     function parseWorkbook(workbook) {
       const sheetName = workbook.SheetNames[0];
@@ -2412,6 +2432,7 @@
           currentLocation = colA.v;
           const opCodeCell = cells.find((c) => c.c === OP_CODE_COL);
           const isDialogOp = !!opCodeCell && opCodeCell.v === DIALOG_OP_CODE;
+          const isNameOp = !!opCodeCell && opCodeCell.v === NAME_OP_CODE;
 
           for (const cell of cells) {
             const t = header.get(cell.c);
@@ -2419,7 +2440,10 @@
 
             const byType = t === "dialog"; // tipo "dialog" sempre entra, seja qual for o OP Code
             const byOpCode = isDialogOp && (t === "dialog" || t === "string"); // OP 39 pega dialog OU string
-            if (!byType && !byOpCode) continue;
+            // OP29 (criar personagem): só a coluna do nome, e só se não bater
+            // no filtro de técnico/debug.
+            const byNameOp = isNameOp && cell.c === NAME_OP_COLUMN && t === "string" && !isDebugOrTechnicalString(cell.v);
+            if (!byType && !byOpCode && !byNameOp) continue;
 
             idCounter += 1;
             const original = String(cell.v);
