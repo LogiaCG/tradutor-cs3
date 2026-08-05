@@ -12,9 +12,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-# Fase 1: nenhum plugin nativo é necessário ainda. O front-end (src/index.html)
-# já usa File System Access API / <input type=file> / download via Blob, que
-# funcionam nativamente dentro do WebView2 (Windows) sem precisar de plugin
-# Tauri nenhum. Plugins de fs/dialog/store entram na Fase 2+, quando o editor
-# de cena precisar ler/escrever .dat/.tbl/.ops fora da sandbox do navegador.
+# Fase 2: escolher a pasta do SenScriptsDecompiler e o arquivo .dat pra abrir
+# precisa de um seletor NATIVO (que devolve caminho real de disco) — o
+# <input type=file> do navegador não serve pra isso, só devolve um Blob sem
+# caminho utilizável por um processo externo.
+tauri-plugin-dialog = "2"

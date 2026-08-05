@@ -1517,6 +1517,201 @@
          controlada em 72ch, que é onde isso realmente importa. */
       max-width: none;
     }
+
+    /* Editor de Cenas (Fase 2) — mesmo tema escuro dos outros painéis
+       (settings-panel/QA toolbar), NÃO o tema claro dos cartões de
+       tradução — evita repetir o bug de contraste já corrigido no QA. */
+    .scene-editor {
+      background: var(--bg-panel);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .scene-editor-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .scene-editor-summary {
+      color: var(--text-onDark-soft);
+      font-size: var(--fs-meta);
+    }
+    .scene-editor-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .scene-editor-note {
+      color: var(--accent-amber);
+      font-size: var(--fs-meta);
+      background: var(--bg-panel-raised);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+    .scene-editor-body {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 14px;
+      min-height: 320px;
+    }
+    @media (max-width: 760px) {
+      .scene-editor-body { grid-template-columns: 1fr; }
+    }
+    .scene-editor-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-right: 1px solid var(--hairline);
+      padding-right: 12px;
+      max-height: 520px;
+    }
+    .scene-search {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-body);
+      background: var(--bg-panel-raised);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 7px 9px;
+    }
+    .scene-func-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow-y: auto;
+    }
+    .scene-func-empty {
+      color: var(--text-onDark-soft);
+      font-size: var(--fs-meta);
+      padding: 8px 4px;
+    }
+    .scene-func-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+      color: var(--text-onDark-soft);
+      cursor: pointer;
+      text-align: left;
+      font-size: var(--fs-meta);
+    }
+    .scene-func-item:hover { background: var(--bg-panel-raised); color: var(--text-onDark); }
+    .scene-func-item.active {
+      background: var(--bg-panel-raised);
+      border-color: var(--accent-amber);
+      color: var(--text-onDark);
+    }
+    .scene-func-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scene-func-count {
+      flex-shrink: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--text-onDark-soft);
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 10.5px;
+    }
+    .scene-editor-main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+    .scene-editor-placeholder {
+      color: var(--text-onDark-soft);
+      font-size: var(--fs-body);
+      padding: 20px 4px;
+    }
+    .scene-func-title {
+      color: var(--text-onDark);
+      font-size: var(--fs-body);
+      padding-bottom: 6px;
+      border-bottom: 1px dashed var(--hairline);
+    }
+    .scene-instr-card {
+      background: var(--bg-panel-raised);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .scene-instr-card.scene-instr-known { border-color: var(--accent-amber); }
+    .scene-instr-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .scene-instr-op {
+      color: var(--accent-amber);
+      font-size: var(--fs-meta);
+    }
+    .scene-instr-label {
+      color: var(--text-onDark);
+      font-size: var(--fs-meta);
+    }
+    .scene-instr-row {
+      margin-left: auto;
+      color: var(--text-onDark-soft);
+      font-size: 10.5px;
+    }
+    .scene-instr-empty {
+      color: var(--text-onDark-soft);
+      font-size: var(--fs-meta);
+      font-style: italic;
+    }
+    .scene-instr-params {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .scene-param {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 90px;
+    }
+    .scene-param-label {
+      color: var(--text-onDark-soft);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .scene-param-input {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-body);
+      background: var(--bg-panel);
+      color: var(--text-onDark);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 5px 7px;
+      width: 100px;
+    }
+    .scene-param-textarea {
+      width: 220px;
+      resize: vertical;
+    }
+    .scene-param-readonly {
+      opacity: 0.55;
+    }
+    .scene-param-value {
+      color: var(--text-onDark-soft);
+      font-size: var(--fs-meta);
+      padding: 5px 0;
+    }
+
     .settings-test-result {
       font-family: 'IBM Plex Mono', monospace;
       font-size: var(--fs-meta);
@@ -1802,6 +1997,7 @@
     const FileSpreadsheet = (p) => <Icon {...p} paths={<><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></>} />;
     const Search = (p) => <Icon {...p} paths={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />;
     const Download = (p) => <Icon {...p} paths={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />;
+    const RefreshCw = (p) => <Icon {...p} paths={<><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></>} />;
     const Trash2 = (p) => <Icon {...p} paths={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>} />;
     const Info = (p) => <Icon {...p} paths={<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>} />;
     const CheckCircle2 = (p) => <Icon {...p} paths={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
@@ -2114,6 +2310,122 @@
       }
 
       return { sheetName, entries };
+    }
+
+// ---------------------------------------------------------------------------
+// Editor de Cenas (Fase 2 do app Windows) -- mesmas funções puras do
+// core.js (parseSceneSheet/applySceneEditsToWorksheet/etc), mirror exato
+// pra manter a mesma disciplina de testes: a lógica é testada contra dados
+// reais em core.test.js, aqui é só a cópia que roda no navegador/WebView.
+    const SCENE_NON_EDITABLE_PARAM_TYPES = new Set(["fill", "pointer", "Start", "End", "OP Code"]);
+    function isEditableSceneParamType(type) {
+      return typeof type === "string" && type !== "" && !SCENE_NON_EDITABLE_PARAM_TYPES.has(type);
+    }
+
+    const SCENE_OP_LABELS = {
+      2: "Início de evento / sub-rotina",
+      5: "Condição (branch)",
+      22: "Espera (delay)",
+      29: "Criar personagem",
+      36: "Diálogo — texto",
+      38: "Diálogo — fechar/continuar",
+      39: "Diálogo — nome do interlocutor",
+      41: "Opção de menu / ARCUS (variantes por sub-tipo)",
+      47: "Atribuir animação",
+      54: "Câmera (variantes por sub-tipo)",
+      55: "Posição/orientação",
+      60: "Expressão facial",
+      172: "Encadear evento",
+    };
+    function sceneOpLabel(opCode) {
+      return SCENE_OP_LABELS[opCode] || null;
+    }
+
+    function parseScenePointerTarget(rawValue) {
+      if (typeof rawValue !== "string") return null;
+      const m = /^=([A-Z]+)(\d+)$/.exec(rawValue);
+      if (!m) return null;
+      return { col: m[1], row: Number(m[2]) };
+    }
+
+    function parseSceneSheet(ws, XLSX) {
+      const cellKeys = Object.keys(ws).filter((k) => k[0] !== "!");
+      const byRow = new Map();
+      for (const key of cellKeys) {
+        const addr = XLSX.utils.decode_cell(key);
+        if (!byRow.has(addr.r)) byRow.set(addr.r, []);
+        byRow.get(addr.r).push({ c: addr.c, v: ws[key].v, f: ws[key].f, ref: key });
+      }
+      const rowIndices = Array.from(byRow.keys()).sort((a, b) => a - b);
+
+      const functions = [];
+      const orphanInstructions = [];
+      let currentFunction = null;
+      let headerTypes = null;
+
+      const cellDisplayValue = (cell) =>
+        cell === undefined ? null : cell.f !== undefined && cell.f !== null ? "=" + cell.f : cell.v;
+
+      for (const r of rowIndices) {
+        const cells = byRow.get(r).sort((a, b) => a.c - b.c);
+        const colA = cells.find((c) => c.c === 0);
+        const colB = cells.find((c) => c.c === 1);
+
+        if (colA && colA.v === "FUNCTION") {
+          currentFunction = { name: (colB && colB.v) || "", row: r + 1, instructions: [] };
+          functions.push(currentFunction);
+          continue;
+        }
+        if (colA && colA.v === "Location") {
+          headerTypes = new Map();
+          for (const cell of cells) {
+            if (cell.c >= 2 && cell.v !== null && cell.v !== undefined && cell.v !== "") {
+              headerTypes.set(cell.c, cell.v);
+            }
+          }
+          continue;
+        }
+        if (colA && typeof colA.v === "number" && headerTypes) {
+          const location = colA.v;
+          const opCode = colB ? colB.v : null;
+          const params = [];
+          for (const [col0, type] of headerTypes) {
+            const cell = cells.find((c) => c.c === col0);
+            params.push({ col: col0 + 1, type, value: cellDisplayValue(cell) });
+          }
+          const instruction = { row: r + 1, location, opCode, params, label: sceneOpLabel(opCode) };
+          if (currentFunction) currentFunction.instructions.push(instruction);
+          else orphanInstructions.push(instruction);
+        }
+      }
+
+      return { functions, orphanInstructions };
+    }
+
+    function findSceneParam(instruction, col) {
+      return instruction.params.find((p) => p.col === col) || null;
+    }
+
+    function validateSceneEdit(instruction, col) {
+      const param = findSceneParam(instruction, col);
+      if (!param) return { ok: false, reason: "coluna não faz parte dos parâmetros desta instrução" };
+      if (!isEditableSceneParamType(param.type)) {
+        return { ok: false, reason: `coluna do tipo "${param.type}" não é editável (estrutura/fórmula, não dado)` };
+      }
+      return { ok: true };
+    }
+
+    function applySceneEditsToWorksheet(ws, XLSX, edits) {
+      const next = Object.assign({}, ws);
+      for (const e of edits) {
+        const addr = XLSX.utils.encode_cell({ r: e.row - 1, c: e.col - 1 });
+        const existing = next[addr] || {};
+        const isNumber = typeof e.value === "number";
+        const cell = Object.assign({}, existing, { v: e.value, t: isNumber ? "n" : "s" });
+        delete cell.f;
+        next[addr] = cell;
+      }
+      return next;
     }
 
     function baseName(fileName) {
@@ -6382,6 +6694,180 @@
       );
     });
 
+    // ---------------------------------------------------------------------------
+    // Editor de Cenas (Fase 2 do app Windows) — abre o MESMO .xlsx que já foi
+    // carregado pra tradução (SenScriptsDecompiler já decompilado por fora,
+    // igual o usuário já faz com converter_em_lote.bat) e permite editar os
+    // parâmetros não-textuais de cada instrução (posição, câmera, branch,
+    // etc.) com formulário tipado em vez de célula de planilha crua.
+    //
+    // Roda em duas camadas:
+    //  1) Sempre funciona: ler os parâmetros, editar, baixar o .xlsx editado
+    //     (o usuário recompila por fora, como já faz hoje).
+    //  2) Só dentro do app Windows (Tauri): "Recompilar para .dat" chama o
+    //     SenScriptsDecompiler.exe automaticamente, sem passo manual.
+    function isTauriRuntime() {
+      return typeof window !== "undefined" && !!window.__TAURI__;
+    }
+
+    function SceneParamField({ param, onChange }) {
+      const editable = isEditableSceneParamType(param.type);
+      if (!editable) {
+        const pointerTarget = param.type === "pointer" ? parseScenePointerTarget(param.value) : null;
+        return (
+          <div className="scene-param scene-param-readonly" title={`tipo "${param.type}" — estrutura/fórmula, não editável`}>
+            <div className="scene-param-label">{param.type}</div>
+            <div className="scene-param-value mono">
+              {pointerTarget ? `→ linha ${pointerTarget.row}` : param.value === "" || param.value === null || param.value === undefined ? "—" : String(param.value)}
+            </div>
+          </div>
+        );
+      }
+      const isFloat = param.type === "float";
+      const isIntLike = param.type === "byte" || param.type === "short" || param.type === "int" || param.type === "bytearray";
+      const isBigText = param.type === "dialog" || (param.type === "string" && typeof param.value === "string" && param.value.length > 20);
+      return (
+        <div className="scene-param">
+          <div className="scene-param-label">{param.type}</div>
+          {isBigText ? (
+            <textarea
+              className="scene-param-input scene-param-textarea mono"
+              rows={2}
+              value={param.value == null ? "" : param.value}
+              onChange={(e) => onChange(param.col, e.target.value)}
+            />
+          ) : isFloat || isIntLike ? (
+            <input
+              type="number"
+              step={isFloat ? "any" : 1}
+              className="scene-param-input mono"
+              value={param.value == null ? 0 : param.value}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const num = isFloat ? parseFloat(raw) : parseInt(raw, 10);
+                onChange(param.col, Number.isNaN(num) ? 0 : num);
+              }}
+            />
+          ) : (
+            <input
+              type="text"
+              className="scene-param-input mono"
+              value={param.value == null ? "" : param.value}
+              onChange={(e) => onChange(param.col, e.target.value)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    const SceneInstructionCard = React.memo(function SceneInstructionCard({ instruction, onParamChange }) {
+      return (
+        <div className={`scene-instr-card ${instruction.label ? "scene-instr-known" : ""}`}>
+          <div className="scene-instr-head">
+            <span className="scene-instr-op mono">OP {instruction.opCode}</span>
+            {instruction.label && <span className="scene-instr-label">{instruction.label}</span>}
+            <span className="scene-instr-row mono">linha {instruction.row}</span>
+          </div>
+          {instruction.params.length === 0 ? (
+            <div className="scene-instr-empty">sem parâmetros</div>
+          ) : (
+            <div className="scene-instr-params">
+              {instruction.params.map((p) => (
+                <SceneParamField key={p.col} param={p} onChange={(col, value) => onParamChange(instruction.row, col, value)} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
+
+    function SceneFunctionList({ functions, search, selectedIndex, onSelect }) {
+      const filtered = React.useMemo(() => {
+        const q = search.trim().toLowerCase();
+        return functions
+          .map((fn, idx) => ({ fn, idx }))
+          .filter(({ fn }) => !q || fn.name.toLowerCase().includes(q));
+      }, [functions, search]);
+      return (
+        <div className="scene-func-list">
+          {filtered.length === 0 && <div className="scene-func-empty">nenhuma função encontrada</div>}
+          {filtered.map(({ fn, idx }) => (
+            <button
+              key={fn.row}
+              className={`scene-func-item ${selectedIndex === idx ? "active" : ""}`}
+              onClick={() => onSelect(idx)}
+            >
+              <span className="scene-func-name mono">{fn.name || `(sem nome, linha ${fn.row})`}</span>
+              <span className="scene-func-count">{fn.instructions.length}</span>
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    function SceneEditorPanel({ scene, search, onSearchChange, selectedIndex, onSelectFunction, onParamChange, onSave, onRecompile, sceneSettings, onOpenDatFile, saving, recompiling, lastResultMessage }) {
+      const selectedFn = selectedIndex != null ? scene.functions[selectedIndex] : null;
+      const tauri = isTauriRuntime();
+      return (
+        <div className="scene-editor">
+          <div className="scene-editor-toolbar">
+            <div className="scene-editor-summary mono">
+              {scene.functions.length} funções · {scene.functions.reduce((n, f) => n + f.instructions.length, 0)} instruções
+            </div>
+            <div className="scene-editor-actions">
+              {tauri && (
+                <button className="btn subtle" onClick={onOpenDatFile} title="Decompilar um .dat direto (só dentro do app Windows)">
+                  <FileSpreadsheet size={13} /> Abrir .dat…
+                </button>
+              )}
+              <button className="btn subtle" onClick={onSave} disabled={saving}>
+                <Download size={13} /> {saving ? "Salvando…" : "Baixar .xlsx com as edições"}
+              </button>
+              {tauri && (
+                <button
+                  className="btn subtle"
+                  onClick={onRecompile}
+                  disabled={recompiling || !sceneSettings.decompilerFolder}
+                  title={!sceneSettings.decompilerFolder ? "Configure a pasta do SenScriptsDecompiler em Configurações" : "Recompilar direto para .dat"}
+                >
+                  <RefreshCw size={13} /> {recompiling ? "Recompilando…" : "Recompilar para .dat"}
+                </button>
+              )}
+            </div>
+          </div>
+          {lastResultMessage && <div className="scene-editor-note mono">{lastResultMessage}</div>}
+          <div className="scene-editor-body">
+            <div className="scene-editor-sidebar">
+              <input
+                type="text"
+                className="scene-search"
+                placeholder="Buscar função…"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+              <SceneFunctionList
+                functions={scene.functions}
+                search={search}
+                selectedIndex={selectedIndex}
+                onSelect={onSelectFunction}
+              />
+            </div>
+            <div className="scene-editor-main">
+              {!selectedFn && <div className="scene-editor-placeholder">Escolha uma função à esquerda pra ver as instruções dela.</div>}
+              {selectedFn && (
+                <React.Fragment>
+                  <div className="scene-func-title mono">{selectedFn.name || `(sem nome)`} — linha {selectedFn.row}</div>
+                  {selectedFn.instructions.map((instr) => (
+                    <SceneInstructionCard key={instr.row} instruction={instr} onParamChange={onParamChange} />
+                  ))}
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function QaPanel({ results, multiDoc, onJump, onIgnore, onRepairCodes, onClearTranslation, canRepair, onChangeTranslation, onBlurTranslation }) {
       const [page, setPage] = React.useState(1);
       const [issueFilter, setIssueFilter] = React.useState("all");
@@ -6628,6 +7114,21 @@
       // null = nenhum painel aberto; string = qual painel esta aberto.
       const [activePanel, setActivePanel] = useState(null); // null | "settings" | "memory" | "properNouns" | "qa" | "collab"
       const togglePanel = (key) => setActivePanel((p) => (p === key ? null : key));
+
+      // --- Editor de Cenas (Fase 2) -------------------------------------------
+      // sceneModel: { functions, orphanInstructions, ws, sheetName } do doc
+      // ATUALMENTE aberto no painel — recalculado quando o painel abre ou o
+      // arquivo muda. As edições pendentes (ainda não baixadas/recompiladas)
+      // ficam em sceneEdits, indexadas por "linha:coluna" — e TAMBÉM já
+      // aplicadas dentro de sceneModel.functions[...].params pra o campo
+      // mostrar o valor novo na hora, sem esperar salvar.
+      const [sceneModel, setSceneModel] = useState(null);
+      const [sceneEdits, setSceneEdits] = useState({}); // { "row:col": value }
+      const [sceneSelectedFuncIndex, setSceneSelectedFuncIndex] = useState(null);
+      const [sceneSearch, setSceneSearch] = useState("");
+      const [sceneSaving, setSceneSaving] = useState(false);
+      const [sceneRecompiling, setSceneRecompiling] = useState(false);
+      const [sceneMessage, setSceneMessage] = useState(null);
       const [memorySearch, setMemorySearch] = useState("");
       // Projetos: cada arquivo pertence a um projeto (ex: "CS3", "CS4", "Outro Jogo").
       // O progresso salvo é isolado por projeto+nome de arquivo, pra dois jogos
@@ -6686,6 +7187,11 @@
         openaiReasoningEffort: "auto",
         rememberApiKey: true, // false = a chave só fica na memória desta aba (nunca gravada no IndexedDB)
         encryptApiKey: false, // true = a chave é criptografada (AES-GCM) antes de ir pro IndexedDB, com frase-senha da sessão
+        // Fase 2 (Editor de Cenas): pasta onde já ficam o SenScriptsDecompiler.exe,
+        // as .dll do Qt e o config.ini do usuário (o mesmo lugar de onde ele já
+        // roda o converter_em_lote.bat hoje). Só é usada dentro do app Windows
+        // (Tauri) — no navegador comum esse campo não faz nada.
+        sceneDecompilerFolder: "",
       };
       const [settings, setSettings] = useState(SETTINGS_DEFAULTS);
       const [globalsLoaded, setGlobalsLoaded] = useState(false);
@@ -7735,6 +8241,157 @@
           console.error(e);
         }
       };
+
+      // --- Editor de Cenas (Fase 2): handlers -------------------------------
+      // Reaproveita EXATAMENTE o mesmo padrão de buildTranslatedWorkbook: relê
+      // os bytes originais guardados em originalDataMapRef (o MESMO .xlsx que
+      // o SenScriptsDecompiler gerou), sem precisar de nenhum comando novo do
+      // Tauri pra isso — só pra decompilar/recompilar .dat é que precisa.
+      const openSceneEditor = useCallback(() => {
+        if (!activeDoc) return;
+        const originalData = originalDataMapRef.current.get(activeDoc.id);
+        if (!originalData) {
+          setSceneMessage("Não achei os bytes originais deste arquivo — reabra o .xlsx.");
+          return;
+        }
+        try {
+          const wb = XLSX.read(originalData, { type: "array" });
+          const sheetName = wb.SheetNames[0];
+          const ws = wb.Sheets[sheetName];
+          const parsed = parseSceneSheet(ws, XLSX);
+          setSceneModel({ docId: activeDoc.id, sheetName, ws, functions: parsed.functions, orphanInstructions: parsed.orphanInstructions });
+          setSceneEdits({});
+          setSceneSelectedFuncIndex(null);
+          setSceneSearch("");
+          setSceneMessage(null);
+          setActivePanel("cenas");
+        } catch (e) {
+          console.error(e);
+          setSceneMessage("Não consegui ler a estrutura de cena deste arquivo: " + (e && e.message ? e.message : e));
+        }
+      }, [activeDoc]);
+
+      const sceneParamChange = useCallback((row, col, value) => {
+        setSceneEdits((prev) => ({ ...prev, [`${row}:${col}`]: value }));
+        setSceneModel((prev) => {
+          if (!prev) return prev;
+          const functions = prev.functions.map((fn) => {
+            if (!fn.instructions.some((i) => i.row === row)) return fn;
+            return {
+              ...fn,
+              instructions: fn.instructions.map((instr) =>
+                instr.row !== row
+                  ? instr
+                  : { ...instr, params: instr.params.map((p) => (p.col === col ? { ...p, value } : p)) }
+              ),
+            };
+          });
+          return { ...prev, functions };
+        });
+      }, []);
+
+      // Monta a planilha editada (aplica todas as edições pendentes) e devolve
+      // { wb, filename, bytes } — usado tanto pra baixar quanto pra recompilar.
+      const buildEditedSceneWorkbook = useCallback(() => {
+        if (!sceneModel) return null;
+        const editsArray = Object.entries(sceneEdits).map(([key, value]) => {
+          const [row, col] = key.split(":").map(Number);
+          return { row, col, value };
+        });
+        const editedWs = applySceneEditsToWorksheet(sceneModel.ws, XLSX, editsArray);
+        const wb = { SheetNames: [sceneModel.sheetName], Sheets: { [sceneModel.sheetName]: editedWs } };
+        const doc = docs.find((d) => d.id === sceneModel.docId);
+        const filename = `${baseName((doc && doc.fileName) || "cena")}_editado.xlsx`;
+        const bytes = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        return { wb, filename, bytes, editedWs };
+      }, [sceneModel, sceneEdits, docs]);
+
+      const saveSceneXlsx = useCallback(async () => {
+        const built = buildEditedSceneWorkbook();
+        if (!built) return;
+        setSceneSaving(true);
+        try {
+          const blob = new Blob([built.bytes], { type: "application/octet-stream" });
+          await saveBlobToDisk(
+            blob,
+            built.filename,
+            "Planilha Excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            [".xlsx"]
+          );
+          setSceneMessage(`Baixado: ${built.filename} (${Object.keys(sceneEdits).length} célula(s) editada(s)). Recompile com o SenScriptsDecompiler pra virar .dat de novo.`);
+        } finally {
+          setSceneSaving(false);
+        }
+      }, [buildEditedSceneWorkbook, sceneEdits]);
+
+      // Abaixo, só funciona dentro do app Windows (Tauri) — window.__TAURI__
+      // só existe lá. No navegador comum esses botões nem aparecem (ver
+      // isTauriRuntime() no componente).
+      const pickSceneDecompilerFolder = useCallback(async () => {
+        if (!window.__TAURI__) return;
+        try {
+          const picked = await window.__TAURI__.dialog.open({ directory: true, multiple: false, title: "Pasta do SenScriptsDecompiler.exe" });
+          if (picked) setSettings((s) => ({ ...s, sceneDecompilerFolder: Array.isArray(picked) ? picked[0] : picked }));
+        } catch (e) {
+          console.error(e);
+        }
+      }, []);
+
+      const openDatFile = useCallback(async () => {
+        if (!window.__TAURI__ || !settings.sceneDecompilerFolder) {
+          setSceneMessage("Configure a pasta do SenScriptsDecompiler em Configurações antes de abrir um .dat direto.");
+          return;
+        }
+        try {
+          const picked = await window.__TAURI__.dialog.open({
+            multiple: false,
+            title: "Escolher arquivo .dat",
+            filters: [{ name: "Script CS3", extensions: ["dat"] }],
+          });
+          if (!picked) return;
+          const datPath = Array.isArray(picked) ? picked[0] : picked;
+          setSceneRecompiling(true);
+          setSceneMessage("Decompilando " + datPath.split(/[\\/]/).pop() + "…");
+          const xlsxPath = await window.__TAURI__.core.invoke("decompile_dat", {
+            exeDir: settings.sceneDecompilerFolder,
+            game: "CS3",
+            datPath,
+          });
+          const bytes = await window.__TAURI__.core.invoke("read_file_bytes", { path: xlsxPath });
+          const buf = new Uint8Array(bytes).buffer;
+          await handleFiles([new File([buf], xlsxPath.split(/[\\/]/).pop(), { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })]);
+          setSceneMessage("Decompilado e aberto: " + xlsxPath);
+        } catch (e) {
+          console.error(e);
+          setSceneMessage("Falha ao decompilar: " + (e && e.message ? e.message : e));
+        } finally {
+          setSceneRecompiling(false);
+        }
+      }, [settings.sceneDecompilerFolder, handleFiles]);
+
+      const recompileScene = useCallback(async () => {
+        if (!window.__TAURI__ || !settings.sceneDecompilerFolder || !sceneModel) return;
+        const built = buildEditedSceneWorkbook();
+        if (!built) return;
+        setSceneRecompiling(true);
+        setSceneMessage("Recompilando…");
+        try {
+          const bytesArray = Array.from(new Uint8Array(built.bytes));
+          const datPath = await window.__TAURI__.core.invoke("recompile_xlsx", {
+            exeDir: settings.sceneDecompilerFolder,
+            game: "CS3",
+            xlsxBytes: bytesArray,
+            suggestedName: built.filename,
+          });
+          setSceneMessage("Recompilado com sucesso: " + datPath);
+        } catch (e) {
+          console.error(e);
+          setSceneMessage("Falha ao recompilar: " + (e && e.message ? e.message : e));
+        } finally {
+          setSceneRecompiling(false);
+        }
+      }, [settings.sceneDecompilerFolder, sceneModel, buildEditedSceneWorkbook]);
 
       const removeDoc = useCallback((docId) => {
         setDocs((prev) => {
@@ -9836,6 +10493,13 @@
                           <Users size={13} /> Colaboração{importSummary && importSummary.conflicts.length > 0 ? ` (${importSummary.conflicts.length})` : ""}
                         </button>
                         <button
+                          className={`btn subtle ${activePanel === "cenas" ? "active-btn" : ""}`}
+                          onClick={() => { if (activePanel === "cenas") { setActivePanel(null); } else { openSceneEditor(); } }}
+                          title="Editar parâmetros de cena (posição, câmera, branch, etc.) do MESMO .xlsx já decompilado"
+                        >
+                          <FileSpreadsheet size={13} /> Editor de Cenas
+                        </button>
+                        <button
                           className="btn subtle"
                           onClick={undoLastAction}
                           disabled={undoStack.length === 0}
@@ -10174,6 +10838,24 @@
                       </div>
                     )}
 
+                    {activePanel === "cenas" && sceneModel && (
+                      <SceneEditorPanel
+                        scene={sceneModel}
+                        search={sceneSearch}
+                        onSearchChange={setSceneSearch}
+                        selectedIndex={sceneSelectedFuncIndex}
+                        onSelectFunction={setSceneSelectedFuncIndex}
+                        onParamChange={sceneParamChange}
+                        onSave={saveSceneXlsx}
+                        onRecompile={recompileScene}
+                        sceneSettings={{ decompilerFolder: settings.sceneDecompilerFolder }}
+                        onOpenDatFile={openDatFile}
+                        saving={sceneSaving}
+                        recompiling={sceneRecompiling}
+                        lastResultMessage={sceneMessage}
+                      />
+                    )}
+
                     {activePanel === "settings" && (
                       <div className="settings-panel">
                         <div className="settings-row" style={{ alignItems: "center" }}>
@@ -10194,6 +10876,26 @@
                             </button>
                           )}
                         </div>
+                        {isTauriRuntime() && (
+                          <div className="settings-row" style={{ alignItems: "center" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span className="u-micro">
+                                Pasta do SenScriptsDecompiler (Editor de Cenas)
+                              </span>
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: settings.sceneDecompilerFolder ? "var(--accent-amber)" : "var(--text-onDark-soft)" }}>
+                                {settings.sceneDecompilerFolder || "nenhuma escolhida — \"Recompilar para .dat\" fica desativado"}
+                              </span>
+                            </div>
+                            <button className="btn" onClick={pickSceneDecompilerFolder}>
+                              <FolderCog size={13} /> {settings.sceneDecompilerFolder ? "trocar pasta" : "escolher pasta"}
+                            </button>
+                            {settings.sceneDecompilerFolder && (
+                              <button className="btn subtle" onClick={() => setSettings((s) => ({ ...s, sceneDecompilerFolder: "" }))}>
+                                <XIcon size={13} /> limpar
+                              </button>
+                            )}
+                          </div>
+                        )}
                         <div className="settings-note">
                           Com uma pasta escolhida, todo download (planilha, glossário etc.) vai direto pra lá sem
                           perguntar de novo — ótimo pra "Baixar todos traduzidos". Só funciona no Chrome/Edge; em

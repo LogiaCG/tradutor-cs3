@@ -1,8 +1,9 @@
 {
   "identifier": "default",
-  "description": "Capacidades padrão da janela principal (Fase 1: só a janela, sem acesso a arquivo nativo ainda)",
+  "description": "Capacidades da janela principal. Fase 2: dialog:default libera os seletores nativos de arquivo/pasta (escolher a pasta do SenScriptsDecompiler e o .dat pra abrir) — os 3 comandos customizados (decompile_dat/recompile_xlsx/read_file_bytes) não precisam de permissão extra aqui porque não são do plugin de shell, são comandos Rust próprios do app, já liberados por core:default.",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "dialog:default"
   ]
 }
