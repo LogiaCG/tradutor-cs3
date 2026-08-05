@@ -339,86 +339,55 @@ test("parseWorkbookEntries ignora blocos sem OP Code 39 e sem coluna tipo dialog
 });
 
 // ---------------------------------------------------------------------------
-// isDebugOrTechnicalString — validado com valores reais extraídos do corpus
-// completo (Scena.zip, 364 arquivos): valores das colunas confirmadamente
-// técnicas (OP2 nome de função, OP5 coordenada, OP47 tag de animação, OP29
-// col3/16/17) devem ser barrados; valores reais de OP29 col4 (nome de
-// personagem/NPC/objeto) devem passar.
+// opCode/opLabel em cada entry — cada card agora carrega de qual OP Code ele
+// veio e um rótulo pronto pra exibir (lido de SCENE_OP_LABELS, a mesma
+// tabela do Editor de Cenas), pra dar contexto sem precisar abrir a outra
+// aba. (A extração do nome de personagem do OP29 foi removida a pedido do
+// usuário — são nomes próprios, ele não vai traduzi-los.)
 // ---------------------------------------------------------------------------
 
-test("isDebugOrTechnicalString barra os padrões da blacklist pedida pelo usuário", () => {
-  assert.equal(core.isDebugOrTechnicalString("tbox00"), true);
-  assert.equal(core.isDebugOrTechnicalString("breakobj01"), true);
-  assert.equal(core.isDebugOrTechnicalString("EV_Start"), true);
-  assert.equal(core.isDebugOrTechnicalString("evpr_00"), true);
-  assert.equal(core.isDebugOrTechnicalString("go_t5610"), true);
-  assert.equal(core.isDebugOrTechnicalString("mapjump"), true);
-  assert.equal(core.isDebugOrTechnicalString("AniEvDead1"), true);
-  assert.equal(core.isDebugOrTechnicalString("BTL_WAIT"), true);
-  assert.equal(core.isDebugOrTechnicalString("chr001"), true);
-  assert.equal(core.isDebugOrTechnicalString("mon026"), true);
-  assert.equal(core.isDebugOrTechnicalString("0x00A"), true);
-  assert.equal(core.isDebugOrTechnicalString("14.500"), true);
-});
-
-test("isDebugOrTechnicalString barra valores técnicos reais de outras colunas do corpus", () => {
-  // OP2 col3 (nome de função), OP5 col6 (ref de coordenada), OP47 col5
-  // (tag de animação), OP29 col3/17 (código de modelo / função de talk)
-  assert.equal(core.isDebugOrTechnicalString("TK_QuestUI_DebugQuestFlag"), true);
-  assert.equal(core.isDebugOrTechnicalString("go_v0010"), true);
-  assert.equal(core.isDebugOrTechnicalString("AniEv7257"), true);
-  assert.equal(core.isDebugOrTechnicalString("C_CHR027"), true);
-  assert.equal(core.isDebugOrTechnicalString("TK_System_Debug"), true);
-  assert.equal(core.isDebugOrTechnicalString("FC_CHR000_C50"), true);
-});
-
-test("isDebugOrTechnicalString barra rótulos de menu de debug/teste", () => {
-  assert.equal(core.isDebugOrTechnicalString("Battle Test"), true);
-  assert.equal(core.isDebugOrTechnicalString("Mini-Game Test"), true);
-  assert.equal(core.isDebugOrTechnicalString("Rean (Glasses Test)"), true);
-});
-
-test("isDebugOrTechnicalString deixa passar nomes reais de personagem/NPC do OP29", () => {
-  // amostra real de OP29 col4 fora de arquivos de debug óbvios
-  assert.equal(core.isDebugOrTechnicalString("Alisa"), false);
-  assert.equal(core.isDebugOrTechnicalString("Chancellor Osborne"), false);
-  assert.equal(core.isDebugOrTechnicalString("Girl Student ①"), false);
-  assert.equal(core.isDebugOrTechnicalString("Provincial Soldier 04"), false);
-  assert.equal(core.isDebugOrTechnicalString("620Martha Herschel"), false);
-  assert.equal(core.isDebugOrTechnicalString("Blue Umbrella"), false);
-  assert.equal(core.isDebugOrTechnicalString("Kurt (Swimwear)"), false);
-});
-
-test("parseWorkbookEntries extrai o nome de OP29 (coluna 4) e barra o técnico/debug", () => {
+test("parseWorkbookEntries anota opCode e opLabel (OP39, com nome amigável)", () => {
   const ws = {
     A1: { v: "Location" },
     B1: { v: "opcode" },
-    D1: { v: "string" }, // col3 = código de modelo (NÃO extraído)
-    E1: { v: "string" }, // col4 = nome (extraído se passar no filtro)
-    A2: { v: 10 },
-    B2: { v: 29 }, // OP29 = criar personagem
-    D2: { v: "C_CHR027" },
-    E2: { v: "Chancellor Osborne" },
-    A3: { v: 11 },
-    B3: { v: 29 },
-    D3: { v: "C_MON999" },
-    E3: { v: "chr001" }, // valor técnico vazado na coluna do nome -> barrado
+    C1: { v: "string" },
+    A2: { v: 100 },
+    B2: { v: 39 }, // OP39 = diálogo, nome do interlocutor
+    C2: { v: "Rean" },
   };
   const workbook = { SheetNames: ["Sheet1"], Sheets: { Sheet1: ws } };
   const result = core.parseWorkbookEntries(workbook, fakeXLSX);
   assert.equal(result.entries.length, 1);
-  assert.equal(result.entries[0].original, "Chancellor Osborne");
-  assert.equal(result.entries[0].location, 10);
+  assert.equal(result.entries[0].opCode, 39);
+  assert.equal(result.entries[0].opLabel, "OP39: Diálogo — nome do interlocutor");
 });
 
-test("parseWorkbookEntries NÃO extrai coluna de código de modelo do OP29 (col3)", () => {
+test("parseWorkbookEntries anota opCode sem nome amigável quando o OP Code não está no dicionário", () => {
+  const ws = {
+    A1: { v: "Location" },
+    B1: { v: "opcode" },
+    D1: { v: "dialog" },
+    A2: { v: 200 },
+    B2: { v: 999 }, // OP Code fora de SCENE_OP_LABELS
+    D2: { v: "Texto qualquer" },
+  };
+  const workbook = { SheetNames: ["Sheet1"], Sheets: { Sheet1: ws } };
+  const result = core.parseWorkbookEntries(workbook, fakeXLSX);
+  assert.equal(result.entries.length, 1);
+  assert.equal(result.entries[0].opCode, 999);
+  assert.equal(result.entries[0].opLabel, "OP999");
+});
+
+test("parseWorkbookEntries NÃO extrai mais nome de personagem do OP29 (removido a pedido do usuário)", () => {
   const ws = {
     A1: { v: "Location" },
     B1: { v: "opcode" },
     D1: { v: "string" },
+    E1: { v: "string" },
     A2: { v: 10 },
-    B2: { v: 29 },
-    D2: { v: "C_CHR027" }, // col3, não col4 -> nunca extraído mesmo passando no filtro
+    B2: { v: 29 }, // OP29 = criar personagem
+    D2: { v: "C_CHR027" },
+    E2: { v: "Chancellor Osborne" }, // nome próprio — não é mais extraído
   };
   const workbook = { SheetNames: ["Sheet1"], Sheets: { Sheet1: ws } };
   const result = core.parseWorkbookEntries(workbook, fakeXLSX);

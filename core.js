@@ -2817,53 +2817,21 @@
       throw lastErr;
     }
 
-// Filtro de "isso é técnico/debug, não traduzível" — usado pra peneirar
-// campos de texto que vêm de OP codes "amigáveis" além do diálogo (por ora,
-// só o nome de personagem do OP29, ver NAME_OP_CODE/NAME_OP_COLUMN abaixo).
-// Desenhado E VALIDADO contra o corpus real inteiro (364 arquivos de cena,
-// ~200 mil valores de colunas confirmadamente técnicas: nomes de função/
-// evento do OP2, coordenadas/refs do OP5, tags de animação do OP47, códigos
-// de expressão do OP60, e as OUTRAS colunas string do próprio OP29 — model
-// code, variante, ref de modelo, nome de função de talk). Cobre as
-// categorias que o usuário pediu pra bloquear:
-//   - variáveis de baú/objeto (tbox00, breakobj01)
-//   - scripts de evento (EV_Start, evpr_00)
-//   - coordenadas de teleporte (go_t5610, mapjump)
-//   - animação/batalha (AniEv7257, BTL_WAIT)
-//   - IDs de modelo 3D (chr001, mon026)
-//   - hex/coordenadas numéricas (0x00A, 14.500)
-// mais um filtro extra descoberto na validação: rótulos de menu de debug/QA
-// ("Battle Test", "Quest Test" etc.) que aparecem no MESMO campo do nome de
-// personagem em cenas de teste.
-    function isDebugOrTechnicalString(value) {
-      const s = String(value).trim();
-      if (!s) return true;
-      if (/^0x[0-9a-fA-F]+$/.test(s)) return true; // hex
-      if (/^-?\d+(\.\d+)?(\s*,\s*-?\d+(\.\d+)?){0,3}$/.test(s)) return true; // número/coordenada
-      if (/^[a-z][a-z0-9_]*$/.test(s)) return true; // identificador tudo-minúsculo (tbox00, go_t5610, chr001...)
-      if (/^(EV_|TK_|BTL_|AniEv|AniSit|AniField|C_CHR|FC_CHR|Ani[A-Z])/.test(s)) return true; // prefixos técnicos conhecidos
-      if (/^[A-Z0-9_]+$/.test(s) && s.includes("_")) return true; // CONSTANTE_COM_UNDERSCORE
-      if (/\b(test|debug)\b/i.test(s)) return true; // rótulo de menu de QA/debug
-      return false;
-    }
-
 // Mesma lógica de parseWorkbook() do app.html, só que recebendo o
 // módulo XLSX (SheetJS) por parâmetro em vez de depender da variável
 // global `XLSX` que só existe no navegador (carregada via <script> no
 // app.html). Use: parseWorkbookEntries(XLSX.read(buffer), XLSX)
+//
+// Nota: chegou a existir aqui uma extração do nome de personagem do OP29
+// ("Criar personagem"), removida a pedido do usuário — são nomes próprios,
+// ele não vai alterá-los, então não fazem sentido como card de tradução.
+// O que ficou: cada entry carrega o OP Code de origem (`opCode`) e um
+// rótulo pronto pra exibir (`opLabel`, ex. "OP39: Diálogo — nome do
+// interlocutor"), lido de SCENE_OP_LABELS (a mesma tabela do Editor de
+// Cenas), pra deixar claro no card QUAL instrução do jogo gerou aquele
+// texto sem precisar abrir o Editor de Cenas em separado.
     const DIALOG_OP_CODE = 39;
     const OP_CODE_COL = 1;
-    // OP29 = "Criar personagem". Confirmado contra o corpus real (364 cenas,
-    // 13382 valores) que a coluna absoluta 4 (E) é SEMPRE o nome de exibição
-    // do personagem/NPC/objeto sendo criado (col3=código de modelo, col5=
-    // variante, col16/17=refs técnicas — nenhuma dessas é extraída). OP41
-    // (menu/ARCUS) foi investigado à parte e excluído: mesmo fora do arquivo
-    // de debug óbvio (a0000.xlsx, debug.xlsx — 57%+18% do total), o restante
-    // são rótulos internos de navegação/pose pra ferramenta de QA ("Musse
-    // brings her lips close to Rean, then stops", "BTL_WAIT 5"), nunca texto
-    // visto pelo jogador — por isso não entra na extração.
-    const NAME_OP_CODE = 29;
-    const NAME_OP_COLUMN = 4;
     function parseWorkbookEntries(workbook, XLSX) {
       const sheetName = workbook.SheetNames[0];
       const ws = workbook.Sheets[sheetName];
@@ -2897,8 +2865,8 @@
         } else if (header && colA && typeof colA.v === "number") {
           currentLocation = colA.v;
           const opCodeCell = cells.find((c) => c.c === OP_CODE_COL);
+          const opCode = opCodeCell ? opCodeCell.v : null;
           const isDialogOp = !!opCodeCell && opCodeCell.v === DIALOG_OP_CODE;
-          const isNameOp = !!opCodeCell && opCodeCell.v === NAME_OP_CODE;
 
           for (const cell of cells) {
             const t = header.get(cell.c);
@@ -2906,13 +2874,11 @@
 
             const byType = t === "dialog"; // tipo "dialog" sempre entra, seja qual for o OP Code
             const byOpCode = isDialogOp && (t === "dialog" || t === "string"); // OP 39 pega dialog OU string
-            // OP29 (criar personagem): só a coluna do nome, e só se não bater
-            // no filtro de técnico/debug (ver isDebugOrTechnicalString acima).
-            const byNameOp = isNameOp && cell.c === NAME_OP_COLUMN && t === "string" && !isDebugOrTechnicalString(cell.v);
-            if (!byType && !byOpCode && !byNameOp) continue;
+            if (!byType && !byOpCode) continue;
 
             idCounter += 1;
             const original = String(cell.v);
+            const friendlyLabel = typeof opCode === "number" ? sceneOpLabel(opCode) : null;
             entries.push({
               id: idCounter,
               ref: cell.ref,
@@ -2924,6 +2890,8 @@
               lineCount: original.split(/\r\n|\r|\n/).length,
               lang: detectLanguage(original),
               codes: extractCodes(original),
+              opCode,
+              opLabel: typeof opCode === "number" ? `OP${opCode}${friendlyLabel ? `: ${friendlyLabel}` : ""}` : null,
             });
           }
         }
@@ -3667,9 +3635,6 @@ const TLoHCore = {
   translateBatchWithRetry,
   translateTextOnce,
   translateText,
-  isDebugOrTechnicalString,
-  NAME_OP_CODE,
-  NAME_OP_COLUMN,
   parseWorkbookEntries,
   isEditableSceneParamType,
   SCENE_OP_LABELS,

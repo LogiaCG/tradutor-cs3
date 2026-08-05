@@ -1171,6 +1171,21 @@
       background: rgba(0,0,0,0.04);
     }
 
+    /* Rótulo do OP Code de origem do card (ex. "OP39: Diálogo — nome do
+       interlocutor") — mesma família visual do lines-badge, cor âmbar pra
+       diferenciar de idioma/linhas à primeira vista. */
+    .op-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-micro);
+      letter-spacing: 0.02em;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--accent-amber);
+      color: #8A6A2E;
+      background: rgba(212,163,64,0.12);
+      white-space: nowrap;
+    }
+
     .warn-note {
       display: flex;
       align-items: center;
@@ -2375,28 +2390,14 @@
     //  2) células tipadas "dialog" ou "string" especificamente nas linhas
     //     onde o OP Code vale 39 (confirmado na planilha como o opcode que
     //     imprime a string de diálogo).
-    // Filtro de "isso é técnico/debug, não traduzível" — mirror exato de
-    // isDebugOrTechnicalString do core.js. Ver comentário lá pra explicação
-    // completa (validado contra o corpus real inteiro de 364 cenas).
-    function isDebugOrTechnicalString(value) {
-      const s = String(value).trim();
-      if (!s) return true;
-      if (/^0x[0-9a-fA-F]+$/.test(s)) return true; // hex
-      if (/^-?\d+(\.\d+)?(\s*,\s*-?\d+(\.\d+)?){0,3}$/.test(s)) return true; // número/coordenada
-      if (/^[a-z][a-z0-9_]*$/.test(s)) return true; // identificador tudo-minúsculo (tbox00, go_t5610, chr001...)
-      if (/^(EV_|TK_|BTL_|AniEv|AniSit|AniField|C_CHR|FC_CHR|Ani[A-Z])/.test(s)) return true; // prefixos técnicos conhecidos
-      if (/^[A-Z0-9_]+$/.test(s) && s.includes("_")) return true; // CONSTANTE_COM_UNDERSCORE
-      if (/\b(test|debug)\b/i.test(s)) return true; // rótulo de menu de QA/debug
-      return false;
-    }
-
+    // Nota: chegou a existir aqui uma extração do nome de personagem do OP29
+    // ("Criar personagem"), removida a pedido do usuário — são nomes
+    // próprios, ele não vai alterá-los. O que ficou: cada entry carrega o OP
+    // Code de origem (`opCode`) e um rótulo pronto pra exibir (`opLabel`,
+    // ex. "OP39: Diálogo — nome do interlocutor"), lido de SCENE_OP_LABELS
+    // (a mesma tabela do Editor de Cenas).
     const DIALOG_OP_CODE = 39;
     const OP_CODE_COL = 1; // coluna B (índice 1, já que A=0)
-    // OP29 = "Criar personagem" — coluna absoluta 4 (E) é sempre o nome de
-    // exibição do personagem/NPC/objeto criado (mirror do core.js, ver lá
-    // a explicação completa de por que OP41 foi investigado e excluído).
-    const NAME_OP_CODE = 29;
-    const NAME_OP_COLUMN = 4;
 
     function parseWorkbook(workbook) {
       const sheetName = workbook.SheetNames[0];
@@ -2431,8 +2432,8 @@
         } else if (header && colA && typeof colA.v === "number") {
           currentLocation = colA.v;
           const opCodeCell = cells.find((c) => c.c === OP_CODE_COL);
+          const opCode = opCodeCell ? opCodeCell.v : null;
           const isDialogOp = !!opCodeCell && opCodeCell.v === DIALOG_OP_CODE;
-          const isNameOp = !!opCodeCell && opCodeCell.v === NAME_OP_CODE;
 
           for (const cell of cells) {
             const t = header.get(cell.c);
@@ -2440,13 +2441,11 @@
 
             const byType = t === "dialog"; // tipo "dialog" sempre entra, seja qual for o OP Code
             const byOpCode = isDialogOp && (t === "dialog" || t === "string"); // OP 39 pega dialog OU string
-            // OP29 (criar personagem): só a coluna do nome, e só se não bater
-            // no filtro de técnico/debug.
-            const byNameOp = isNameOp && cell.c === NAME_OP_COLUMN && t === "string" && !isDebugOrTechnicalString(cell.v);
-            if (!byType && !byOpCode && !byNameOp) continue;
+            if (!byType && !byOpCode) continue;
 
             idCounter += 1;
             const original = String(cell.v);
+            const friendlyLabel = typeof opCode === "number" ? sceneOpLabel(opCode) : null;
             entries.push({
               id: idCounter,
               ref: cell.ref,
@@ -2458,6 +2457,8 @@
               lineCount: original.split(/\r\n|\r|\n/).length,
               lang: detectLanguage(original),
               codes: extractCodes(original),
+              opCode,
+              opLabel: typeof opCode === "number" ? `OP${opCode}${friendlyLabel ? `: ${friendlyLabel}` : ""}` : null,
             });
           }
         }
@@ -6959,6 +6960,9 @@
             )}
             <span className="ref">{entry.ref}</span>
             <span>loc {entry.location}</span>
+            {entry.opLabel && (
+              <span className="op-badge" title="Instrução (OP Code) do jogo que gerou este texto">{entry.opLabel}</span>
+            )}
             {entry.lang !== "unknown" && (
               <span className={`lang-badge lang-${entry.lang}`}>{entry.lang === "en" ? "EN" : "PT"}</span>
             )}
