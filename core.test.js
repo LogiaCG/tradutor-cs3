@@ -395,6 +395,58 @@ test("parseWorkbookEntries NÃO extrai mais nome de personagem do OP29 (removido
 });
 
 // ---------------------------------------------------------------------------
+// Projetos e arquivos abertos — auditoria pedida pelo usuário: escopar
+// "todos" ao projeto ativo, evitar fragmentar projeto por maiúscula/espaço,
+// evitar arquivo duplicado, e validar de verdade o .json de Colaboração.
+// ---------------------------------------------------------------------------
+
+test("resolveProjectName reaproveita a grafia já existente ignorando maiúscula/espaço", () => {
+  assert.equal(core.resolveProjectName("cs3", ["CS3", "CS4"]), "CS3");
+  assert.equal(core.resolveProjectName("  CS3  ", ["CS3"]), "CS3");
+  assert.equal(core.resolveProjectName("CS4", ["CS3"]), "CS4"); // projeto novo, mantém a grafia digitada
+  assert.equal(core.resolveProjectName("   ", ["CS3"]), null);
+  assert.equal(core.resolveProjectName("", []), null);
+});
+
+test("docsInProject filtra só os docs do projeto pedido", () => {
+  const docs = [{ id: 1, project: "CS3" }, { id: 2, project: "CS4" }, { id: 3, project: "CS3" }];
+  const result = core.docsInProject(docs, "CS3");
+  assert.deepEqual(result.map((d) => d.id), [1, 3]);
+});
+
+test("isDuplicateOpenFile detecta o mesmo projeto+arquivo já aberto", () => {
+  const docs = [{ project: "CS3", fileName: "a0000.xlsx" }];
+  assert.equal(core.isDuplicateOpenFile(docs, "CS3", "a0000.xlsx"), true);
+  assert.equal(core.isDuplicateOpenFile(docs, "CS4", "a0000.xlsx"), false); // projeto diferente, não é duplicata
+  assert.equal(core.isDuplicateOpenFile(docs, "CS3", "a0001.xlsx"), false);
+});
+
+test("parseProgressStorageKey lê projeto e arquivo de volta da chave de storage", () => {
+  assert.deepEqual(core.parseProgressStorageKey("cs3progress:CS3:a0000.xlsx"), { project: "CS3", fileName: "a0000.xlsx" });
+  assert.deepEqual(core.parseProgressStorageKey("cs3progress:Meu Projeto:tk_juna.xlsx"), { project: "Meu Projeto", fileName: "tk_juna.xlsx" });
+  assert.equal(core.parseProgressStorageKey("cs3settings"), null); // não é chave de progresso
+  assert.equal(core.parseProgressStorageKey("cs3progress:semarquivo"), null); // falta o ":arquivo"
+});
+
+test("validateProjectStateExport aceita só um export de verdade deste app", () => {
+  const valid = { kind: "project-state-export", version: 1, docs: [] };
+  assert.deepEqual(core.validateProjectStateExport(valid), { ok: true });
+
+  // .json qualquer que por coincidência tem uma propriedade "docs" — antes
+  // passava batido só checando Array.isArray(data.docs)
+  assert.equal(core.validateProjectStateExport({ docs: [] }).ok, false);
+  assert.equal(core.validateProjectStateExport({ docs: [] }).reason, "wrong-kind");
+
+  assert.equal(core.validateProjectStateExport({ kind: "project-state-export" }).reason, "missing-docs");
+  assert.equal(core.validateProjectStateExport(null).reason, "not-json-object");
+  assert.equal(core.validateProjectStateExport([1, 2, 3]).reason, "not-json-object");
+
+  // versão futura que este app ainda não entende — recusa em vez de mesclar campo desconhecido
+  const future = { kind: "project-state-export", version: 99, docs: [] };
+  assert.equal(core.validateProjectStateExport(future).reason, "newer-version");
+});
+
+// ---------------------------------------------------------------------------
 // Regressão: detectLanguage estava marcando linha em INGLÊS como "pt" —
 // (a) por causa de 1 acento perdido (nome estilizado/empréstimo) mesmo com
 // palavras claramente inglesas ao redor, e (b) por causa do desempate de
@@ -2896,6 +2948,79 @@ test("wrapToLineCount: o conserto realmente zera o aviso do QA", () => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// Pedido do usuário: além do NÚMERO de linhas bater, a tradução deve ficar
+// parecida com o original também na quantidade de PALAVRA por linha (uma
+// linha curta no original vira uma linha proporcionalmente curta na
+// tradução). originalLineWordCounts extrai o "molde" do original;
+// wrapProportionalToOriginal reparte por essa proporção; wrapToLineCount
+// aceita esse molde como 3º argumento OPCIONAL — sem ele, cai no
+// comportamento antigo (testes acima, todos ainda de 2 argumentos, continuam
+// batendo sem mudar nada).
+// ---------------------------------------------------------------------------
+test("originalLineWordCounts: conta palavra por linha, linha vazia conta 0", () => {
+  assert.deepEqual(core.originalLineWordCounts("Please be careful.\nDon't push or run!"), [3, 4]);
+  assert.deepEqual(core.originalLineWordCounts("uma\nduas palavras\ntrês palavras aqui"), [1, 2, 3]);
+  assert.deepEqual(core.originalLineWordCounts("linha um\n\nlinha três"), [2, 0, 2]);
+  assert.deepEqual(core.originalLineWordCounts(""), [0]);
+});
+
+test("wrapProportionalToOriginal: reparte a tradução na MESMA proporção de palavra do original", () => {
+  // original: linha 1 tem 1 palavra (10%), linha 2 tem 9 palavras (90%) de
+  // um total de 10 -- a tradução (10 palavras) deve seguir a mesma
+  // proporção: ~1 palavra na linha 1, ~9 na linha 2 (não 5/5).
+  const words = "um dois tres quatro cinco seis sete oito nove dez".split(" ");
+  const r = core.wrapProportionalToOriginal(words, [1, 9]);
+  const [l1, l2] = r.split("\n");
+  assert.equal(l1.split(" ").length, 1);
+  assert.equal(l2.split(" ").length, 9);
+  // nenhuma palavra perdida nem repetida
+  assert.equal(r.replace(/\n/g, " "), words.join(" "));
+});
+
+test("wrapProportionalToOriginal: linha vazia no original vira linha vazia na tradução", () => {
+  const words = "um dois tres quatro".split(" ");
+  const r = core.wrapProportionalToOriginal(words, [2, 0, 2]);
+  const lines = r.split("\n");
+  assert.equal(lines.length, 3);
+  assert.equal(lines[1], ""); // linha do meio, vazia no original, fica vazia
+  assert.equal(r.replace(/\n/g, " ").trim().split(/\s+/).length, 4); // nenhuma palavra perdida
+});
+
+test("wrapProportionalToOriginal: cada linha (não-vazia no original) recebe pelo menos 1 palavra", () => {
+  // 3 linhas no original, só 3 palavras na tradução -- nenhuma pode ficar sem
+  const r = core.wrapProportionalToOriginal(["a", "b", "c"], [1, 1, 1]);
+  assert.deepEqual(r.split("\n"), ["a", "b", "c"]);
+});
+
+test("wrapToLineCount com molde do original (3º argumento): prioriza proporção de palavra sobre equilíbrio de caractere", () => {
+  // sem pontuação de frase (cai direto na PREFERÊNCIA 2/3) -- original bem
+  // desbalanceado entre as 2 linhas (1 palavra / 6 palavras)
+  const original = "Ei\nvocê aí, espera um segundo por favor";
+  const traducao = "Ei você aí espera um segundo por favor"; // 8 palavras, sem pontuação final
+  const comMolde = core.wrapToLineCount(traducao, 2, core.originalLineWordCounts(original));
+  const [l1, l2] = comMolde.split("\n");
+  assert.equal(l1.split(" ").length, 1); // igual proporção da linha 1 do original (1 de 7)
+  assert.equal(l2.split(" ").length, 7);
+
+  // sem o 3º argumento, comportamento antigo (equilíbrio por caractere) —
+  // continua funcionando exatamente como antes, sem quebrar chamadas velhas
+  const semMolde = core.wrapToLineCount(traducao, 2);
+  assert.equal(semMolde.split("\n").length, 2);
+});
+
+test("wrapToLineCount: molde do original também funciona no caso de 'mais frases que linhas' (antes ia por groupSentencesIntoLines)", () => {
+  const original = "Wait.\nDon't go anywhere, please stay right here with me."; // 1 palavra / 10 palavras
+  const traducao = "Espere. Não vá a lugar nenhum, por favor fique bem aqui comigo."; // 2 frases, 1 linha só
+  const r = core.wrapToLineCount(traducao, 2, core.originalLineWordCounts(original));
+  const [l1, l2] = r.split("\n");
+  // a proporção de palavra por linha fica MUITO mais perto do original
+  // (1/11) do que o agrupamento de frase antigo (que juntaria as 2 frases
+  // inteiras, cada uma numa linha, ficando 2 palavras / 9 palavras)
+  assert.ok(l1.split(" ").length <= 2, `linha 1 deveria ficar curta, veio "${l1}"`);
+  assert.equal(r.replace(/\n/g, " "), traducao);
+});
+
 test("QA: inglês e outros idiomas agora são o MESMO tipo", () => {
   const entry = { ref: "A", original: "Please be careful.", codes: [], lineCount: 1, lang: "en" };
 
@@ -4633,4 +4758,154 @@ test("tblFindTagPositions: acha a tag certa e ignora tags parecidas de outra tab
   assert.equal(tagFullLen, "PlaceTableData".length + 1);
   const { positions: none } = core.tblFindTagPositions(fixtureBytes(REAL_TBL_PLACE_FIXTURE_HEX), "NameTableData");
   assert.equal(none.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Motor genérico de tabela com tag (TBL_TABLE_PROFILES / parseTaggedTableByProfile
+// / detectTblProfile) — 7 tabelas novas descobertas escaneando Text.zip (54
+// arquivos .tbl reais que o usuário mandou) além de item/nome/lugar já
+// cobertos acima. Fixtures são RECORTES REAIS (tag de preâmbulo sintético
+// + 2-3 registros completos e reais) dos arquivos correspondentes dentro
+// de Text.zip — cada profile foi validado rodando contra o arquivo INTEIRO
+// em Node antes de virar teste (contagem documentada no comentário de cada
+// profile em core.js). O preâmbulo aqui é sintético (só "tag\0", sem os
+// milhares de bytes reais de antes do 1º registro) pra manter a fixture
+// pequena — não muda nada no parsing, já que só a POSIÇÃO da 1ª ocorrência
+// importa (é sempre descartada como preâmbulo).
+// ---------------------------------------------------------------------------
+const REAL_TBL_TEXT_FIXTURE_HEX =
+  "546578745461626c654461746100546578745461626c6544617461000a00000054616c6b20746f00546578745461626c6544617461000700010054616c6b00546578745461626c654461746100070002005269646500";
+const REAL_TBL_ACTIVEVOICE_FIXTURE_HEX =
+  "416374697665566f6963655461626c654461746100416374697665566f6963655461626c6544617461007100010001000100495f41564630303030007869000054686520656e7472616e6365206973207269676874206f7665722074686572652e204c65742773206d6f76650a6f757420617320736f6f6e2061732077652772652072656164792e000000803e0000803f090000120000000000000000416374697665566f6963655461626c6544617461005400010002000200495f415646303130300079690a005965732c207369722e0a284a757374207768617420746865206865636b20697320616c6c20746869733f29000000803f0000803f200000000000000000000000416374697665566f6963655461626c6544617461007000020003000100495f41564630323030007a691400596f75277665206a7573742063726f73736564207468652068616c6677617920706f696e742e0a42657374206f66206c75636b206f6e20746865207365636f6e642068616c6621000000803e0000803f090001120000000000000000";
+const REAL_TBL_MAPJUMP_FIXTURE_HEX =
+  "4d61704a756d7044617461004d61704a756d7044617461003800010085030046726f6e7420456e7472616e6365000100512374303230300030000000000000000000000080bf00003443c6020c03010001004d61704a756d704461746100350002008503005363686f6f6c202d20314600010052237430323130003000cdccccbd0000000066662641000034431806b302020002004d61704a756d704461746100350003008503005363686f6f6c202d2032460001005323743032313000300000009840000090400000e0bf000000001806fc0103000300";
+const REAL_TBL_QUESTTITLE_FIXTURE_HEX =
+  "51535469746c650051535469746c65002c00c80001e3808845696e68656c2050726163746963616c204578616de38089003f3f3f000100010004000000000000000051535469746c65003500c90001e3808850616e7a657220536f6c64617420547261696e696e67202d20417072696ce38089003f3f3f000100010004000000000000000051535469746c65003400ca0001e38088556e6b6e6f776e204d6f6e7374657220496e7665737469676174696f6ee38089003f3f3f0001000100050000000000000000";
+const REAL_TBL_MG08TEXT_FIXTURE_HEX =
+  "4d47303854657874004d4730385465787400160000004175746f204275696c643a2042616c616e6365004d47303854657874001b0001004175746f204275696c643a204e617469616c20466f637573004d47303854657874001a0002004175746f204275696c643a204d6167696320466f63757300";
+const REAL_TBL_MONSTER_FIXTURE_HEX =
+  "737461747573007374617475730046016d6f6e30303200435f4d4f4e303032006d6f6e303032000000803f0000c03f3333333f0000803f000000000000c04000002041010001000006660000000000c642fa00fa00c80000002f000000a0412c000000704130000000a0412e00000070412d00cdcc4c3e0a00cdcccc3d000023000000003f04000000000004000000803fc80000000000b4645064646464969632c89696643296646464966432966400c80064003200000200000000010100000000cdcc4c3e000000000000000000000000000000000000000000000000280c0f2400056666663fcdcc8c3f4d004a6577656c656420526970706572004120686f726e656420726174206d6f6e737465722e0a53746f726573206d616e6120696e207468652067656d206f6e0a697473207461696c20616e6420636173747320617274730a7768656e20746872656174656e65642e00737461747573003c016d6f6e30303100435f4d4f4e303031006d6f6e30303100cdcc4c3f0000c03fcdcc4c3f6666a63f0000000000000041000020410100010000067700000000001b4390019001c800000042000000a04182000000f04140000000a0410000000000003700cdcc4c3e1400cdcccc3d00002a000000003f080000000000080000000040b40000000000508cc88c646464c86432323264c86432c8c832329632c832003200c80064000100000301000002cdcc4c3d00000000000000009a99193e9a99993d0000000000000000cdcccc3d290c143c00056666663fcdcc8c3f4d004361726162617365004120666c79696e6720696e73656374206d6f6e737465722e0a497473206272696768742c20737475726479207368656c6c0a70726f74656374732069742066726f6d0a706879736963616c2061747461636b732e00";
+const REAL_TBL_LINKABILITY_FIXTURE_HEX =
+  "4c696e6b416254657874004c696e6b416254657874002d00004c696e6b2041747461636b00416c6c6f77732074686520757365206f66206c696e6b2061747461636b732e004c696e6b4162546578740054000546696e697368696e6720426c6f7700466f6c6c6f7773206173736973742061747461636b73207769746820612066696e697368696e6720626c6f772069662074686520666f6520686173206c6f772048502e004c696e6b416254657874004c000a506f77657266756c20537472696b6500496e637265617365732066696e697368696e6720626c6f77277320706f77657220616e642061637469766174696f6e206672657175656e63792e00";
+
+function profileById(id) {
+  const p = core.TBL_TABLE_PROFILES.find((x) => x.id === id);
+  assert.ok(p, `profile ${id} deveria existir`);
+  return p;
+}
+
+test("parseTaggedTableByProfile (text/TextTableData): rotulos curtos de UI, 3 registros reais", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_TEXT_FIXTURE_HEX), profileById("text"));
+  assert.equal(r.records.length, 3);
+  assert.equal(r.unrecognized, 0);
+  assert.deepEqual(r.records.map((rec) => rec.fields.text.text), ["Talk to", "Talk", "Ride"]);
+});
+
+test("parseTaggedTableByProfile (activevoice/ActiveVoiceTableData): fala no 5o campo (indice 4)", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_ACTIVEVOICE_FIXTURE_HEX), profileById("activevoice"));
+  // o 1o registro real do arquivo (idField=1, "The entrance is right over
+  // there...") tem outro campo mais adiante que nao fecha limpo dentro do
+  // recorte de 3 registros da fixture, entao fica de fora (unrecognized) —
+  // mesmo comportamento contra o arquivo INTEIRO (592 registros, 257
+  // reconhecidos: cobertura parcial documentada no profile, nao é bug).
+  assert.ok(r.records.length >= 2);
+  assert.equal(r.records[0].fields.text.text, "Yes, sir.\n(Just what the heck is all this?)");
+  assert.equal(r.records[1].fields.text.text, "You've just crossed the halfway point.\nBest of luck on the second half!");
+});
+
+test("parseTaggedTableByProfile (mapjump/MapJumpData): nome do destino no 2o campo (indice 1)", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_MAPJUMP_FIXTURE_HEX), profileById("mapjump"));
+  assert.equal(r.records.length, 3);
+  assert.equal(r.unrecognized, 0);
+  assert.deepEqual(r.records.map((rec) => rec.fields.text.text), ["Front Entrance", "School - 1F", "School - 2F"]);
+});
+
+test("parseTaggedTableByProfile (questtitle/QSTitle): titulo entre () , 1 byte de controle removido do inicio", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_QUESTTITLE_FIXTURE_HEX), profileById("questtitle"));
+  assert.equal(r.records.length, 3);
+  assert.equal(r.unrecognized, 0);
+  assert.equal(r.records[0].fields.text.text, "〈Einhel Practical Exam〉");
+  // confirma que o byte de controle (\x01, rank) NAO sobrou grudado no texto
+  assert.equal(r.records[0].fields.text.text.charCodeAt(0), 0x3008);
+});
+
+test("parseTaggedTableByProfile (mg08text/MG08Text): texto unico de UI de minigame, 3 registros reais", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_MG08TEXT_FIXTURE_HEX), profileById("mg08text"));
+  assert.equal(r.records.length, 3);
+  assert.equal(r.unrecognized, 0);
+  assert.deepEqual(r.records.map((rec) => rec.fields.text.text), ["Auto Build: Balance", "Auto Build: Natial Focus", "Auto Build: Magic Focus"]);
+});
+
+test("parseTaggedTableByProfile (monster/status): bestiario com nome (penultimo campo) + descricao (ultimo campo)", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_MONSTER_FIXTURE_HEX), profileById("monster"));
+  assert.equal(r.records.length, 2);
+  assert.equal(r.unrecognized, 0);
+  assert.equal(r.records[0].fields.name.text, "Jeweled Ripper");
+  assert.match(r.records[0].fields.desc.text, /^A horned rat monster\./);
+  assert.equal(r.records[1].fields.name.text, "Carabase");
+  assert.match(r.records[1].fields.desc.text, /^A flying insect monster\./);
+});
+
+test("parseTaggedTableByProfile (linkability/LinkAbText): 1o registro tem campo vazio antes do nome, os demais tem byte de rank grudado (removido pelo stripLeadingControl)", () => {
+  const r = core.parseTaggedTableByProfile(fixtureBytes(REAL_TBL_LINKABILITY_FIXTURE_HEX), profileById("linkability"));
+  assert.equal(r.records.length, 3);
+  assert.equal(r.unrecognized, 0);
+  assert.equal(r.records[0].fields.name.text, "Link Attack");
+  assert.equal(r.records[0].fields.desc.text, "Allows the use of link attacks.");
+  assert.equal(r.records[1].fields.name.text, "Finishing Blow"); // sem o \x05 de rank grudado
+  // registro 2 tem rank=0x0A, que por coincidencia É o codepoint de '\n' —
+  // como '\n' é um caractere LEGITIMO em outros campos (quebra de linha de
+  // diálogo), stripLeadingControl de propósito NÃO mexe nele (não dá pra
+  // distinguir "rank 10" de "começa com quebra de linha de verdade" só
+  // olhando o byte) — o \n sobra no início do nome nesse caso raro, sem
+  // quebrar a edição (ainda é um campo editável normalmente).
+  assert.equal(r.records[2].fields.name.text, "\nPowerful Strike");
+});
+
+test("applyTaggedTableFieldEdit sobre monster (2 campos por registro): edita so a descricao, nome do MESMO registro fica intacto, round-trip exato", () => {
+  const original = fixtureBytes(REAL_TBL_MONSTER_FIXTURE_HEX);
+  const profile = profileById("monster");
+  const parsed1 = core.parseTaggedTableByProfile(original, profile);
+  const rec = parsed1.records[0];
+
+  const novaDesc = "Um rato monstruoso com chifre.\nGuarda mana na joia da\ncauda e conjura artes\nquando ameaçado.";
+  const edited = core.applyTaggedTableFieldEdit(original, rec.start, rec.end, rec.tagFullLen, { start: rec.fields.desc.start, end: rec.fields.desc.end }, novaDesc);
+  const parsed2 = core.parseTaggedTableByProfile(edited, profile);
+  assert.equal(parsed2.records.length, 2);
+  assert.equal(parsed2.records[0].fields.desc.text, novaDesc);
+  assert.equal(parsed2.records[0].fields.name.text, "Jeweled Ripper"); // nome nao mudou
+  assert.equal(parsed2.records[1].fields.name.text, "Carabase"); // proximo registro intacto
+  assert.equal(parsed2.records[1].fields.desc.text, parsed1.records[1].fields.desc.text);
+
+  const rec2 = parsed2.records[0];
+  const undone = core.applyTaggedTableFieldEdit(edited, rec2.start, rec2.end, rec2.tagFullLen, { start: rec2.fields.desc.start, end: rec2.fields.desc.end }, rec.fields.desc.text);
+  assert.equal(Buffer.compare(Buffer.from(undone), Buffer.from(original)), 0);
+});
+
+test("detectTblProfile: descobre sozinho o tipo certo pra cada fixture, sem o usuario escolher na mao", () => {
+  const cases = [
+    [REAL_TBL_TEXT_FIXTURE_HEX, "text"],
+    [REAL_TBL_ACTIVEVOICE_FIXTURE_HEX, "activevoice"],
+    [REAL_TBL_MAPJUMP_FIXTURE_HEX, "mapjump"],
+    [REAL_TBL_QUESTTITLE_FIXTURE_HEX, "questtitle"],
+    [REAL_TBL_MG08TEXT_FIXTURE_HEX, "mg08text"],
+    [REAL_TBL_MONSTER_FIXTURE_HEX, "monster"],
+    [REAL_TBL_LINKABILITY_FIXTURE_HEX, "linkability"],
+    [REAL_TBL_NAME_FIXTURE_HEX, "name"],
+    [REAL_TBL_PLACE_FIXTURE_HEX, "place"],
+  ];
+  for (const [hex, expectedId] of cases) {
+    const detected = core.detectTblProfile(fixtureBytes(hex));
+    assert.ok(detected, `deveria detectar algo pra ${expectedId}`);
+    assert.equal(detected.id, expectedId);
+  }
+});
+
+test("detectTblProfile: exige um minimo de registros pro item table (sentinel sem tag ancorando) pra nao dar falso positivo", () => {
+  assert.equal(core.TBL_ITEM_DETECTION_MIN_RECORDS > 0, true);
+  // um trecho pequeno demais (abaixo do minimo) nao deve ser aceito como "item",
+  // mesmo que bata o padrao sentinel por acaso
+  const tiny = fixtureBytes(REAL_TBL_MONSTER_FIXTURE_HEX); // nao tem sentinel de item nenhum
+  const detected = core.detectTblProfile(tiny);
+  assert.notEqual(detected && detected.kind, "item");
 });

@@ -770,7 +770,59 @@
       return lines;
     }
 
-    function wrapToLineCount(text, lineCount) {
+    // Quantas palavras cada linha do ORIGINAL tinha — é o "molde" usado
+    // pelo wrapToLineCount pra repartir a tradução de um jeito que fique
+    // parecido com o original não só no NÚMERO de linhas, mas também na
+    // quantidade de palavra de CADA linha (uma linha curta no original vira
+    // uma linha proporcionalmente curta na tradução, não um pedaço igual
+    // das outras). Linha vazia no original (raro, mas existe) conta 0.
+    function originalLineWordCounts(original) {
+      return String(original || "")
+        .split(/\r\n|\r|\n/)
+        .map((line) => {
+          const t = line.trim();
+          return t ? t.split(/\s+/).length : 0;
+        });
+    }
+
+    // Reparte as palavras da TRADUÇÃO (já sem quebra de linha, uma frase
+    // corrida) proporcionalmente à distribuição de palavras das linhas do
+    // ORIGINAL (`lineWordCounts`, uma entrada por linha). Ex: original com
+    // "3 palavras / 7 palavras" nas 2 linhas -> a tradução tenta reservar
+    // ~30%/~70% das SUAS palavras pra linha 1/linha 2, não 50/50. Cada linha
+    // recebe pelo menos 1 palavra (exceto quando o original tinha aquela
+    // linha vazia de verdade, aí a tradução também fica vazia ali).
+    function wrapProportionalToOriginal(words, lineWordCounts) {
+      const lineCount = lineWordCounts.length;
+      const totalOriginalWords = lineWordCounts.reduce((a, b) => a + b, 0) || lineCount;
+      const totalWords = words.length;
+      const lines = [];
+      let idx = 0;
+      let cumulativeOriginal = 0;
+      for (let i = 0; i < lineCount; i++) {
+        cumulativeOriginal += lineWordCounts[i];
+        const isLast = i === lineCount - 1;
+        const remainingNonEmptyAfter = lineWordCounts.slice(i + 1).filter((c) => c > 0).length;
+        let cutoff;
+        if (lineWordCounts[i] === 0) {
+          cutoff = idx; // original tinha linha vazia aqui -> tradução também fica
+        } else {
+          cutoff = isLast ? totalWords : Math.round((cumulativeOriginal / totalOriginalWords) * totalWords);
+          cutoff = Math.max(cutoff, idx + 1); // nunca deixa a linha atual vazia (a menos que o original tenha)
+        }
+        cutoff = Math.min(cutoff, totalWords - remainingNonEmptyAfter); // reserva >=1 palavra pras próximas linhas não-vazias
+        lines.push(words.slice(idx, cutoff).join(" "));
+        idx = cutoff;
+      }
+      return lines.join("\n");
+    }
+
+    // `originalWordsPerLine` é opcional (array com a saída de
+    // originalLineWordCounts) — quando fornecido, a repartição por palavra
+    // segue a PROPORÇÃO de cada linha do original em vez de equilibrar por
+    // tamanho médio de caractere (comportamento antigo, mantido como
+    // fallback quando só temos o número de linhas, sem a forma delas).
+    function wrapToLineCount(text, lineCount, originalWordsPerLine) {
       const clean = text.replace(/\s+/g, " ").trim();
       if (lineCount <= 1 || !clean) return clean;
 
@@ -782,13 +834,22 @@
       // número de linhas certo, mas lê mal e não corresponde ao original.
       const frases = splitIntoSentences(clean);
       if (frases.length === lineCount) return frases.join("\n");
-      if (frases.length > lineCount) return groupSentencesIntoLines(frases, lineCount).join("\n");
 
-      // PREFERÊNCIA 2 (menos frases que linhas, ou nenhuma pontuação de
-      // fim): cai no equilíbrio por palavras, que é o comportamento antigo.
       const words = clean.split(" ");
       if (words.length < lineCount) return clean; // não tem palavra suficiente pra quebrar sem cortar
 
+      // PREFERÊNCIA 2: com a forma linha-a-linha do original em mãos,
+      // reparte por PROPORÇÃO de palavra (pedido explícito do usuário: além
+      // do número de linhas bater, a quantidade de palavra em cada linha
+      // precisa ficar parecida com a linha correspondente do original).
+      if (Array.isArray(originalWordsPerLine) && originalWordsPerLine.length === lineCount) {
+        return wrapProportionalToOriginal(words, originalWordsPerLine);
+      }
+
+      if (frases.length > lineCount) return groupSentencesIntoLines(frases, lineCount).join("\n");
+
+      // PREFERÊNCIA 3 (fallback antigo, só quando não recebemos a forma do
+      // original): equilíbrio por tamanho médio de caractere por linha.
       const targetPerLine = clean.length / lineCount;
       const lines = [];
       let current = "";
@@ -2731,7 +2792,7 @@
         // — descartar deixaria a linha sair em inglês no jogo.
         const limpo = sanitizeTranslation(flatOriginals[i], montado);
         const lineCount = originals[i].split(/\r\n|\r|\n/).length;
-        return lineCount > 1 ? wrapToLineCount(limpo, lineCount) : limpo;
+        return lineCount > 1 ? wrapToLineCount(limpo, lineCount, originalLineWordCounts(originals[i])) : limpo;
       });
     }
 
@@ -2772,7 +2833,7 @@
         // instrução no prompt (não como marcador de posição) — fica mais
         // natural mesmo quando a frase flexiona o termo ao redor dele.
         const restored = await translateViaLLM(flatOriginal, settings, properNouns, translationMemory);
-        return lineCount > 1 ? wrapToLineCount(restored, lineCount) : restored;
+        return lineCount > 1 ? wrapToLineCount(restored, lineCount, originalLineWordCounts(original)) : restored;
       }
 
       // Auditoria 2.4: códigos do jogo são protegidos PRIMEIRO — mais
@@ -2794,7 +2855,7 @@
       let restored = restorePunctuation(translatedRaw, punctTokens);
       restored = restoreProperNouns(restored, nounTokens);
       restored = restoreCodes(restored, codeTokens);
-      return lineCount > 1 ? wrapToLineCount(restored, lineCount) : restored;
+      return lineCount > 1 ? wrapToLineCount(restored, lineCount, originalLineWordCounts(original)) : restored;
     }
 
     async function translateText(original, settings, properNouns, translationMemory, retries = 3) {
@@ -2899,6 +2960,83 @@
 
       return { sheetName, entries };
     }
+
+// ---------------------------------------------------------------------------
+// Projetos e arquivos abertos — funções puras extraídas da auditoria de
+// "Projetos e arquivos abertos": nome de projeto sem duplicar por causa de
+// maiúscula/espaço, filtro de docs por projeto (pra escopar "todos" de
+// verdade ao projeto ativo em vez de à sessão inteira), detecção de arquivo
+// já aberto, e validação do .json de Colaboração.
+// ---------------------------------------------------------------------------
+
+// Resolve o nome de projeto que deve ser USADO de fato: se já existe um
+// projeto conhecido igual ignorando maiúscula/minúscula e espaço nas
+// pontas, devolve a grafia JÁ EXISTENTE (não cria "cs3" novo quando "CS3"
+// já existe) — sem isso, digitar o mesmo projeto de duas formas diferentes
+// fragmentava o progresso salvo silenciosamente. Devolve null se, depois do
+// trim, não sobrar nome nenhum.
+function resolveProjectName(inputName, knownProjects) {
+  const trimmed = String(inputName == null ? "" : inputName).trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase();
+  const existing = (knownProjects || []).find((p) => String(p).trim().toLowerCase() === lower);
+  return existing || trimmed;
+}
+
+// Filtra docs pelo projeto — usado pra escopar operações "todos" (busca,
+// tradução em lote, QA, exportar, progresso geral) ao projeto ATIVO, em vez
+// de a todo doc aberto na sessão (que podia misturar dois jogos diferentes
+// abertos ao mesmo tempo).
+function docsInProject(docs, project) {
+  return (docs || []).filter((d) => d.project === project);
+}
+
+// true se já existe um doc aberto com o MESMO projeto + nome de arquivo —
+// usado pra não deixar o mesmo arquivo virar dois cartões independentes na
+// sidebar (cada um brigando pela mesma chave de progresso salvo).
+function isDuplicateOpenFile(docs, project, fileName) {
+  return (docs || []).some((d) => d.project === project && d.fileName === fileName);
+}
+
+// Formato da chave de progresso salvo no IndexedDB: "cs3progress:{projeto}:
+// {arquivo}". Projeto nunca tem ":" na prática (fica antes do primeiro ":"),
+// arquivo pode ter (por segurança, pega o resto inteiro).
+const PROGRESS_STORAGE_PREFIX = "cs3progress:";
+function parseProgressStorageKey(key) {
+  if (typeof key !== "string" || !key.startsWith(PROGRESS_STORAGE_PREFIX)) return null;
+  const rest = key.slice(PROGRESS_STORAGE_PREFIX.length);
+  const sep = rest.indexOf(":");
+  if (sep === -1) return null;
+  const project = rest.slice(0, sep);
+  const fileName = rest.slice(sep + 1);
+  if (!project || !fileName) return null;
+  return { project, fileName };
+}
+
+// Valida um .json antes de mesclar na Colaboração: confere que é REALMENTE
+// um export deste app (kind + docs array), não só "tem uma propriedade
+// docs por coincidência" — a checagem antiga só olhava Array.isArray(data.
+// docs), o que deixaria passar qualquer .json de outra origem que por acaso
+// tivesse esse formato. Também recusa uma versão de schema mais NOVA do que
+// este app entende, em vez de tentar mesclar campos que talvez nem existam
+// ainda aqui.
+const PROJECT_STATE_EXPORT_KIND = "project-state-export";
+const PROJECT_STATE_EXPORT_VERSION = 1;
+function validateProjectStateExport(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { ok: false, reason: "not-json-object" };
+  }
+  if (!Array.isArray(data.docs)) {
+    return { ok: false, reason: "missing-docs" };
+  }
+  if (data.kind !== PROJECT_STATE_EXPORT_KIND) {
+    return { ok: false, reason: "wrong-kind" };
+  }
+  if (typeof data.version === "number" && data.version > PROJECT_STATE_EXPORT_VERSION) {
+    return { ok: false, reason: "newer-version", version: data.version };
+  }
+  return { ok: true };
+}
 
 // ---------------------------------------------------------------------------
 // Editor de Cenas (Fase 2 do app Windows) — lê a MESMA planilha .xlsx que o
@@ -3479,6 +3617,240 @@
       return { records, unrecognized, headerCount: recordStarts.length };
     }
 
+// ---------------------------------------------------------------------
+// Fase 3b — Editor GENÉRICO de tabelas "com tag", cobrindo as tabelas
+// novas descobertas em Text.zip (54 arquivos .tbl de data/text) que têm
+// frase legível pro jogador, além de nome/lugar já existentes acima.
+// Mesma técnica de tag+lenField(+idField opcional)+strings, mas
+// parametrizada por um "profile" (ver TBL_TABLE_PROFILES) em vez de uma
+// função dedicada por tabela — cada tabela nova só precisa dizer a tag,
+// quantos bytes de cabeçalho vêm depois da tag (2 = só lenField; 4 =
+// lenField+idField, igual place/name) e QUAIS campos (por posição, do
+// início ou do fim da lista de strings do registro) são o texto
+// traduzível.
+//
+// Cada profile abaixo foi validado rodando esse parser contra o arquivo
+// REAL inteiro que o usuário mandou (dentro de Text.zip) ANTES de virar
+// código aqui — a % de registros reconhecidos com texto de verdade em
+// cada campo está documentada ao lado de cada profile.
+// ---------------------------------------------------------------------
+
+    // Alguns campos (ex: QSTitle) têm 1 byte de controle (rank/ícone) colado
+    // ANTES do texto de verdade, dentro do mesmo trecho até o NUL — sem
+    // isso, tblIsCleanText rejeitaria o campo inteiro por causa desse 1
+    // byte. Só pula o byte se for controle (<0x20, exceto '\n'); o prefixo
+    // fica de fora do trecho editável, nunca é tocado por uma edição.
+    function tblCleanFieldBounds(bytes, start, end) {
+      if (start < end && bytes[start] < 0x20 && bytes[start] !== 10) {
+        return { start: start + 1, end };
+      }
+      return { start, end };
+    }
+
+    // Igual tblReadRecordHeader, mas com o tamanho do cabeçalho (depois da
+    // tag) parametrizável: 4 = lenField(u16)+idField(u16) (place/name/a
+    // maioria das novas), 2 = só lenField, sem idField (caso do
+    // LinkAbText — confirmado comparando lenField contra o tamanho real
+    // do registro nos 29 registros do arquivo do usuário).
+    function tblReadRecordHeaderGeneric(bytes, start, tagFullLen, headerExtraBytes) {
+      const p = start + tagFullLen;
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const lenField = view.getUint16(p, true);
+      const idField = headerExtraBytes >= 4 ? view.getUint16(p + 2, true) : null;
+      return { fieldsStart: p + headerExtraBytes, lenField, idField };
+    }
+
+    // Anda pelas strings NUL-terminadas de um registro [fieldsStart,end) —
+    // mesmo passo a passo usado (duplicado) em parsePlaceTable/
+    // parseNameTable. Retorna null se algum trecho não fechar certinho
+    // dentro do registro (registro rejeitado, não é "meio reconhecido").
+    function tblWalkRecordStrings(bytes, fieldsStart, end) {
+      const strings = [];
+      let p = fieldsStart;
+      while (p < end) {
+        const strEnd = tblFindCStringEnd(bytes, p);
+        if (strEnd === -1 || strEnd >= end) return null;
+        strings.push({ start: p, end: strEnd });
+        p = strEnd + 1;
+      }
+      if (p !== end) return null;
+      return strings;
+    }
+
+    // Parser genérico orientado a `profile` (ver TBL_TABLE_PROFILES) —
+    // substitui escrever uma função dedicada pra cada tabela nova. Um
+    // registro só entra em `records` se TODOS os campos do profile forem
+    // encontrados e passarem em tblIsCleanText — meio reconhecido não
+    // conta, vira `unrecognized` (mesma disciplina de zero-risco dos
+    // editores anteriores).
+    function parseTaggedTableByProfile(bytes, profile) {
+      const { positions, tagFullLen } = tblFindTagPositions(bytes, profile.tag);
+      if (positions.length < 2) return { records: [], unrecognized: 0, headerCount: 0 };
+      const recordStarts = positions.slice(1);
+      const records = [];
+      let unrecognized = 0;
+      const headerExtraBytes = profile.headerExtraBytes || 4;
+      for (let i = 0; i < recordStarts.length; i++) {
+        const start = recordStarts[i];
+        const end = i + 1 < recordStarts.length ? recordStarts[i + 1] : bytes.length;
+        const { fieldsStart, idField } = tblReadRecordHeaderGeneric(bytes, start, tagFullLen, headerExtraBytes);
+        const strings = fieldsStart <= end ? tblWalkRecordStrings(bytes, fieldsStart, end) : null;
+        if (!strings) { unrecognized++; continue; }
+        if (profile.minFieldCount != null && strings.length < profile.minFieldCount) { unrecognized++; continue; }
+        if (profile.maxFieldCount != null && strings.length > profile.maxFieldCount) { unrecognized++; continue; }
+
+        const fields = {};
+        let allOk = true;
+        for (const fdef of profile.fields) {
+          const idx = fdef.fromEnd != null ? strings.length - fdef.fromEnd : fdef.fromStart;
+          if (idx == null || idx < 0 || idx >= strings.length) { allOk = false; break; }
+          const raw = strings[idx];
+          const bounds = fdef.stripLeadingControl ? tblCleanFieldBounds(bytes, raw.start, raw.end) : raw;
+          const text = tblDecodeStringRange(bytes, bounds.start, bounds.end);
+          if (text === null || !tblIsCleanText(text, fdef.maxLen || 500)) { allOk = false; break; }
+          fields[fdef.key] = { start: bounds.start, end: bounds.end, text, label: fdef.label };
+        }
+        if (!allOk) { unrecognized++; continue; }
+        records.push({ start, end, tagFullLen, idField, fields });
+      }
+      return { records, unrecognized, headerCount: recordStarts.length };
+    }
+
+    // Registro de tabelas suportadas pelo editor unificado. `id`/`label`
+    // são só pra UI; `fileHint` é o nome típico do arquivo (documentação,
+    // não usado pra detectar — a detecção é 100% pelo conteúdo/tag).
+    //
+    //   - text (t_text.tbl, TextTableData): 829 registros no arquivo real,
+    //     765 com texto (o resto é registro vazio/placeholder) — rótulo de
+    //     ação/UI curto ("Talk to", "Ride", "Settings").
+    //   - activevoice (t_active.tbl, ActiveVoiceTableData): 592 registros,
+    //     257 com fala de verdade no 5º campo (índice 4) — o resto são
+    //     variantes sem áudio/texto (barra vazia).
+    //   - mapjump (t_jump.tbl, MapJumpData): 300 registros, 252 com nome
+    //     de destino no 2º campo (índice 1) — pontos de viagem rápida.
+    //   - questtitle (t_quest.tbl, QSTitle): 114 de 114 registros (100%),
+    //     título entre 〈 〉 no 1º campo, com 1 byte de controle (rank)
+    //     colado antes — daí o stripLeadingControl.
+    //   - mg08text (t_mg08.tbl, MG08Text): 86 de 87 registros, texto único
+    //     no 1º campo — textos de UI de um minigame.
+    //   - monster (t_mons.tbl, tag "status"): 333 de 333 registros (100%),
+    //     nome no penúltimo campo e descrição no último, os dois presentes
+    //     em TODOS os registros — bestiário completo (nome + flavor text).
+    //   - linkability (t_linkab.tbl, LinkAbText): 28 de 29 registros — nome
+    //     + descrição de habilidade de vínculo. ATENÇÃO, duas pegadinhas
+    //     confirmadas byte a byte: (1) essa tabela NÃO tem idField (só 2
+    //     bytes de cabeçalho, não 4); (2) só o 1º registro (rank 0) tem um
+    //     campo vazio antes do nome — nos outros 28, o byte de rank (1-15)
+    //     fica GRUDADO no início do nome dentro do mesmo campo. Por isso
+    //     os campos são contados do FIM (fromEnd) em vez do início, e o
+    //     nome usa stripLeadingControl pra tirar o byte de rank.
+    //
+    // Tabelas investigadas e DEIXADAS DE FORA por enquanto (formato
+    // inconsistente entre registros, arriscado extrair sem mais reverse
+    // engenharia): QSChar/t_notechar (bio de personagem — elenco
+    // principal tem 1 campo a mais que os coadjuvantes, deslocando tudo),
+    // MasterQuartz*/t_mstqrt, Shop*/t_shop, QSCook/t_notecook,
+    // NaviTextData/t_navi, ItemHelpData/t_itemhelp, corpo do QSText (texto
+    // de missão — posição do campo varia registro a registro). Nome/lugar
+    // (t_name.tbl/t_place.tbl) continuam com suas próprias funções
+    // dedicadas (parseNameTable/parsePlaceTable) — formato de campo fixo
+    // que não encaixa neste motor genérico (que exige as strings
+    // preencherem o registro inteiro, sem sobra) — detectTblProfile chama
+    // as duas direto, fora do array de profiles.
+    const TBL_TABLE_PROFILES = [
+      {
+        id: "text", label: "Textos de UI (ações/rótulos curtos)", fileHint: "t_text.tbl",
+        tag: "TextTableData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Texto", maxLen: 200 }],
+      },
+      {
+        id: "activevoice", label: "Falas curtas (Active Voice)", fileHint: "t_active.tbl",
+        tag: "ActiveVoiceTableData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 4, label: "Fala", maxLen: 600 }],
+      },
+      {
+        id: "mapjump", label: "Nomes de destino (viagem rápida)", fileHint: "t_jump.tbl",
+        tag: "MapJumpData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 1, label: "Nome do destino", maxLen: 200 }],
+      },
+      {
+        id: "questtitle", label: "Títulos de missão", fileHint: "t_quest.tbl",
+        tag: "QSTitle", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Título da missão", maxLen: 200, stripLeadingControl: true }],
+      },
+      {
+        id: "mg08text", label: "Textos do minigame (MG08)", fileHint: "t_mg08.tbl",
+        tag: "MG08Text", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Texto", maxLen: 200 }],
+      },
+      {
+        id: "monster", label: "Bestiário (nome + descrição)", fileHint: "t_mons.tbl",
+        tag: "status", headerExtraBytes: 4,
+        fields: [
+          { key: "name", fromEnd: 2, label: "Nome do monstro", maxLen: 120 },
+          { key: "desc", fromEnd: 1, label: "Descrição", maxLen: 500 },
+        ],
+      },
+      // LinkAbText: o registro do 1º item da tabela tem um campo extra
+      // vazio antes do nome (rank 0 vira um NUL "solto"), mas os demais
+      // NÃO têm esse campo vazio — o byte de rank (1-15) fica GRUDADO no
+      // início do nome dentro do mesmo campo (daí precisar contar a
+      // partir do FIM — fromEnd — em vez do início, e usar
+      // stripLeadingControl pra tirar esse byte de rank do texto editável).
+      {
+        id: "linkability", label: "Habilidades de vínculo (nome + descrição)", fileHint: "t_linkab.tbl",
+        tag: "LinkAbText", headerExtraBytes: 2,
+        fields: [
+          { key: "name", fromEnd: 2, label: "Nome da habilidade", maxLen: 120, stripLeadingControl: true },
+          { key: "desc", fromEnd: 1, label: "Descrição", maxLen: 400 },
+        ],
+      },
+    ];
+
+    // Abaixo de quantos registros um "acerto" do item table (0xFF 0xFF +
+    // flag, sem nenhuma tag ancorando) é ignorado na detecção automática.
+    // Diferente das tabelas com tag (praticamente impossível bater com um
+    // arquivo errado por acaso, já que a tag é um texto ASCII específico),
+    // o padrão do item table é genérico o bastante pra, em arquivos
+    // grandes sem relação nenhuma, coincidir por acaso um punhado de
+    // vezes — confirmado contra os 51 arquivos reais do Text.zip:
+    // t_evtable.tbl "achou" 21 pseudo-itens (na real, códigos de evento
+    // tipo "_51_01"/"r2290") e t_magic.tbl achou 114 (nome cortado no
+    // meio + "magic" repetido como "descrição") — nenhum dos dois é uma
+    // tabela de item de verdade. Os 2 arquivos reais de item que o
+    // usuário mandou têm 834 registros cada, bem acima deste teto.
+    const TBL_ITEM_DETECTION_MIN_RECORDS = 200;
+
+    // Detecta automaticamente qual tabela é o arquivo carregado: tenta o
+    // parser sentinel do item table (0xFF 0xFF + flag, sem tag), os
+    // parsers dedicados de nome/lugar (formato de campo fixo, não encaixa
+    // no motor genérico) e cada profile de TBL_TABLE_PROFILES — devolve
+    // quem reconheceu MAIS registros. Assim o usuário só precisa "abrir o
+    // arquivo", sem escolher o tipo na mão — o editor unificado descobre
+    // sozinho.
+    function detectTblProfile(bytes) {
+      let best = null;
+      const itemResult = parseItemTable(bytes);
+      if (itemResult.records.length >= TBL_ITEM_DETECTION_MIN_RECORDS) {
+        best = { kind: "item", id: "item", label: "Itens (nome + descrição)", result: itemResult };
+      }
+      const nameResult = parseNameTable(bytes);
+      if (nameResult.records.length > 0 && (!best || nameResult.records.length > best.result.records.length)) {
+        best = { kind: "name", id: "name", label: "Nomes de personagem", result: nameResult };
+      }
+      const placeResult = parsePlaceTable(bytes);
+      if (placeResult.records.length > 0 && (!best || placeResult.records.length > best.result.records.length)) {
+        best = { kind: "place", id: "place", label: "Lugares/capítulos", result: placeResult };
+      }
+      for (const profile of TBL_TABLE_PROFILES) {
+        const result = parseTaggedTableByProfile(bytes, profile);
+        if (result.records.length > 0 && (!best || result.records.length > best.result.records.length)) {
+          best = { kind: "tagged", id: profile.id, label: profile.label, profile, result };
+        }
+      }
+      return best;
+    }
+
 const TLoHCore = {
   PT_WORDS,
   EN_WORDS,
@@ -3537,6 +3909,8 @@ const TLoHCore = {
   findSimilarInMemory,
   splitIntoSentences,
   groupSentencesIntoLines,
+  originalLineWordCounts,
+  wrapProportionalToOriginal,
   wrapToLineCount,
   parseTwoColumnImport,
   parseRetryAfterMs,
@@ -3636,6 +4010,11 @@ const TLoHCore = {
   translateTextOnce,
   translateText,
   parseWorkbookEntries,
+  resolveProjectName,
+  docsInProject,
+  isDuplicateOpenFile,
+  parseProgressStorageKey,
+  validateProjectStateExport,
   isEditableSceneParamType,
   SCENE_OP_LABELS,
   sceneOpLabel,
@@ -3665,7 +4044,14 @@ const TLoHCore = {
   tblRewriteLenField,
   applyTaggedTableFieldEdit,
   parsePlaceTable,
-  parseNameTable
+  parseNameTable,
+  tblCleanFieldBounds,
+  tblReadRecordHeaderGeneric,
+  tblWalkRecordStrings,
+  parseTaggedTableByProfile,
+  TBL_TABLE_PROFILES,
+  TBL_ITEM_DETECTION_MIN_RECORDS,
+  detectTblProfile
 };
 
 if (typeof module === "object" && module.exports) {

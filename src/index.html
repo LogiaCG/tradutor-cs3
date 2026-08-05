@@ -204,6 +204,15 @@
       line-height: 1.5;
     }
 
+    /* Linha de ferramentas que não dependem de nenhum .xlsx aberto (hoje só
+       o Editor de Tabelas .tbl) — fica logo abaixo do masthead, ANTES da
+       dropzone, visível tanto na tela vazia quanto com arquivos abertos. */
+    .masthead-tools {
+      display: flex;
+      justify-content: flex-end;
+      margin: -8px 0 16px;
+    }
+
     /* --- Drop zone --- */
     .dropzone {
       border: 1.5px dashed var(--hairline);
@@ -736,9 +745,8 @@
     /* --- multi-file tabs --- */
     .project-bar {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 8px;
-      flex-wrap: wrap;
       margin-bottom: 16px;
       padding: 8px 12px;
       background: var(--bg-panel);
@@ -748,6 +756,53 @@
       font-size: var(--fs-meta);
       color: var(--text-onDark-soft);
     }
+    .project-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    /* Lista de projetos conhecidos como chips — clicar troca o projeto
+       ativo (atalho pro autocomplete do input); "· N" é quantos arquivos
+       daquele projeto estão abertos agora. O "×" de excluir só aparece
+       quando não há nenhum arquivo aberto do projeto (ver deleteProject). */
+    .project-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .project-chip {
+      display: inline-flex;
+      align-items: stretch;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .project-chip.active { border-color: var(--accent-amber); }
+    .project-chip-select {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-micro);
+      color: var(--text-onDark-soft);
+      background: transparent;
+      border: none;
+      padding: 3px 7px;
+      cursor: pointer;
+    }
+    .project-chip.active .project-chip-select { color: var(--accent-amber); font-weight: 600; }
+    .project-chip-select:hover { color: var(--accent-amber); }
+    .project-chip-delete {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-onDark-soft);
+      background: transparent;
+      border: none;
+      border-left: 1px solid var(--hairline);
+      padding: 0 5px;
+      cursor: pointer;
+      opacity: 0.6;
+    }
+    .project-chip-delete:hover { opacity: 1; color: var(--accent-brick); }
     .project-input {
       font-family: 'IBM Plex Mono', monospace;
       font-size: var(--fs-body);
@@ -984,6 +1039,36 @@
       overflow-y: auto;
       padding-right: 2px;
     }
+    .sidebar-project-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sidebar-project-group + .sidebar-project-group { margin-top: 8px; }
+    .sidebar-project-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--hairline);
+      padding: 2px 2px 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-micro);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-onDark-soft);
+      opacity: 0.75;
+      cursor: pointer;
+      text-align: left;
+    }
+    .sidebar-project-header:hover { opacity: 1; color: var(--accent-amber); }
+    .sidebar-project-header.is-active-project { opacity: 1; color: var(--accent-amber); border-color: var(--accent-amber); }
+    .sidebar-project-count {
+      margin-left: auto;
+      font-weight: 600;
+    }
     .sidebar-file-item {
       display: flex;
       align-items: center;
@@ -1134,6 +1219,24 @@
       cursor: pointer;
     }
     .add-more-dropzone:hover, .add-more-dropzone.drag { border-color: var(--accent-amber); color: var(--accent-amber); }
+
+    /* Aviso de progresso salvo (IndexedDB) de arquivo(s) fechados/de sessão
+       anterior — mesma linguagem visual do warn-note, mas em tom âmbar neutro
+       (informativo, não é um alerta de problema). */
+    .saved-progress-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: var(--fs-meta);
+      color: #8A6A2E;
+      background: rgba(212,163,64,0.10);
+      border: 1px solid rgba(212,163,64,0.35);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
 
     .scope-toggle {
       display: inline-flex;
@@ -1992,6 +2095,23 @@
       }
     }
 
+    // Lista todas as chaves salvas (usado pra achar progresso de arquivos
+    // que NÃO estão abertos agora — ver "Arquivos com progresso salvo" na
+    // sidebar). getAllKeys() é suportado por todo navegador que já suporta
+    // IndexedDB de verdade, então não precisa de fallback por cursor.
+    async function idbGetAllKeys() {
+      try {
+        const db = await openIDB();
+        return await new Promise((resolve) => {
+          const req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).getAllKeys();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([]);
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
     // migração automática, uma vez só: copia o que já existia no localStorage
     // (de sessões anteriores do app, antes dessa mudança) pro IndexedDB. Não
     // apaga o localStorage original — só não usa mais ele daqui pra frente.
@@ -2121,6 +2241,11 @@
         await migrationPromise;
         const ok = await idbDelete(key);
         return ok ? { key, deleted: true } : null;
+      },
+      keysWithPrefix: async (prefix) => {
+        await migrationPromise;
+        const all = await idbGetAllKeys();
+        return all.filter((k) => typeof k === "string" && k.startsWith(prefix));
       },
     };
 
@@ -2465,6 +2590,57 @@
       }
 
       return { sheetName, entries };
+    }
+
+// ---------------------------------------------------------------------------
+// Projetos e arquivos abertos — mirror exato das funções puras do core.js
+// (mesma disciplina de testes: lógica testada em Node, aqui é só a cópia
+// que roda no navegador/WebView). Ver core.js pra explicação completa.
+// ---------------------------------------------------------------------------
+    function resolveProjectName(inputName, knownProjects) {
+      const trimmed = String(inputName == null ? "" : inputName).trim();
+      if (!trimmed) return null;
+      const lower = trimmed.toLowerCase();
+      const existing = (knownProjects || []).find((p) => String(p).trim().toLowerCase() === lower);
+      return existing || trimmed;
+    }
+
+    function docsInProject(docs, project) {
+      return (docs || []).filter((d) => d.project === project);
+    }
+
+    function isDuplicateOpenFile(docs, project, fileName) {
+      return (docs || []).some((d) => d.project === project && d.fileName === fileName);
+    }
+
+    const PROGRESS_STORAGE_PREFIX = "cs3progress:";
+    function parseProgressStorageKey(key) {
+      if (typeof key !== "string" || !key.startsWith(PROGRESS_STORAGE_PREFIX)) return null;
+      const rest = key.slice(PROGRESS_STORAGE_PREFIX.length);
+      const sep = rest.indexOf(":");
+      if (sep === -1) return null;
+      const project = rest.slice(0, sep);
+      const fileName = rest.slice(sep + 1);
+      if (!project || !fileName) return null;
+      return { project, fileName };
+    }
+
+    const PROJECT_STATE_EXPORT_KIND = "project-state-export";
+    const PROJECT_STATE_EXPORT_VERSION = 1;
+    function validateProjectStateExport(data) {
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return { ok: false, reason: "not-json-object" };
+      }
+      if (!Array.isArray(data.docs)) {
+        return { ok: false, reason: "missing-docs" };
+      }
+      if (data.kind !== PROJECT_STATE_EXPORT_KIND) {
+        return { ok: false, reason: "wrong-kind" };
+      }
+      if (typeof data.version === "number" && data.version > PROJECT_STATE_EXPORT_VERSION) {
+        return { ok: false, reason: "newer-version", version: data.version };
+      }
+      return { ok: true };
     }
 
 // ---------------------------------------------------------------------------
@@ -3010,6 +3186,239 @@
       return { records, unrecognized, headerCount: recordStarts.length };
     }
 
+// ---------------------------------------------------------------------
+// Fase 3b — Editor GENÉRICO de tabelas "com tag", cobrindo as tabelas
+// novas descobertas em Text.zip (54 arquivos .tbl de data/text) que têm
+// frase legível pro jogador, além de nome/lugar já existentes acima.
+// Mesma técnica de tag+lenField(+idField opcional)+strings, mas
+// parametrizada por um "profile" (ver TBL_TABLE_PROFILES) em vez de uma
+// função dedicada por tabela — cada tabela nova só precisa dizer a tag,
+// quantos bytes de cabeçalho vêm depois da tag (2 = só lenField; 4 =
+// lenField+idField, igual place/name) e QUAIS campos (por posição, do
+// início ou do fim da lista de strings do registro) são o texto
+// traduzível.
+//
+// Cada profile abaixo foi validado rodando esse parser contra o arquivo
+// REAL inteiro que o usuário mandou (dentro de Text.zip) ANTES de virar
+// código aqui — a % de registros reconhecidos com texto de verdade em
+// cada campo está documentada ao lado de cada profile.
+// ---------------------------------------------------------------------
+
+    // Alguns campos (ex: QSTitle) têm 1 byte de controle (rank/ícone) colado
+    // ANTES do texto de verdade, dentro do mesmo trecho até o NUL — sem
+    // isso, tblIsCleanText rejeitaria o campo inteiro por causa desse 1
+    // byte. Só pula o byte se for controle (<0x20, exceto '\n'); o prefixo
+    // fica de fora do trecho editável, nunca é tocado por uma edição.
+    function tblCleanFieldBounds(bytes, start, end) {
+      if (start < end && bytes[start] < 0x20 && bytes[start] !== 10) {
+        return { start: start + 1, end };
+      }
+      return { start, end };
+    }
+
+    // Igual tblReadRecordHeader, mas com o tamanho do cabeçalho (depois da
+    // tag) parametrizável: 4 = lenField(u16)+idField(u16) (place/name/a
+    // maioria das novas), 2 = só lenField, sem idField (caso do
+    // LinkAbText — confirmado comparando lenField contra o tamanho real
+    // do registro nos 29 registros do arquivo do usuário).
+    function tblReadRecordHeaderGeneric(bytes, start, tagFullLen, headerExtraBytes) {
+      const p = start + tagFullLen;
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const lenField = view.getUint16(p, true);
+      const idField = headerExtraBytes >= 4 ? view.getUint16(p + 2, true) : null;
+      return { fieldsStart: p + headerExtraBytes, lenField, idField };
+    }
+
+    // Anda pelas strings NUL-terminadas de um registro [fieldsStart,end) —
+    // mesmo passo a passo usado (duplicado) em parsePlaceTable/
+    // parseNameTable. Retorna null se algum trecho não fechar certinho
+    // dentro do registro (registro rejeitado, não é "meio reconhecido").
+    function tblWalkRecordStrings(bytes, fieldsStart, end) {
+      const strings = [];
+      let p = fieldsStart;
+      while (p < end) {
+        const strEnd = tblFindCStringEnd(bytes, p);
+        if (strEnd === -1 || strEnd >= end) return null;
+        strings.push({ start: p, end: strEnd });
+        p = strEnd + 1;
+      }
+      if (p !== end) return null;
+      return strings;
+    }
+
+    // Parser genérico orientado a `profile` (ver TBL_TABLE_PROFILES) —
+    // substitui escrever uma função dedicada pra cada tabela nova. Um
+    // registro só entra em `records` se TODOS os campos do profile forem
+    // encontrados e passarem em tblIsCleanText — meio reconhecido não
+    // conta, vira `unrecognized` (mesma disciplina de zero-risco dos
+    // editores anteriores).
+    function parseTaggedTableByProfile(bytes, profile) {
+      const { positions, tagFullLen } = tblFindTagPositions(bytes, profile.tag);
+      if (positions.length < 2) return { records: [], unrecognized: 0, headerCount: 0 };
+      const recordStarts = positions.slice(1);
+      const records = [];
+      let unrecognized = 0;
+      const headerExtraBytes = profile.headerExtraBytes || 4;
+      for (let i = 0; i < recordStarts.length; i++) {
+        const start = recordStarts[i];
+        const end = i + 1 < recordStarts.length ? recordStarts[i + 1] : bytes.length;
+        const { fieldsStart, idField } = tblReadRecordHeaderGeneric(bytes, start, tagFullLen, headerExtraBytes);
+        const strings = fieldsStart <= end ? tblWalkRecordStrings(bytes, fieldsStart, end) : null;
+        if (!strings) { unrecognized++; continue; }
+        if (profile.minFieldCount != null && strings.length < profile.minFieldCount) { unrecognized++; continue; }
+        if (profile.maxFieldCount != null && strings.length > profile.maxFieldCount) { unrecognized++; continue; }
+
+        const fields = {};
+        let allOk = true;
+        for (const fdef of profile.fields) {
+          const idx = fdef.fromEnd != null ? strings.length - fdef.fromEnd : fdef.fromStart;
+          if (idx == null || idx < 0 || idx >= strings.length) { allOk = false; break; }
+          const raw = strings[idx];
+          const bounds = fdef.stripLeadingControl ? tblCleanFieldBounds(bytes, raw.start, raw.end) : raw;
+          const text = tblDecodeStringRange(bytes, bounds.start, bounds.end);
+          if (text === null || !tblIsCleanText(text, fdef.maxLen || 500)) { allOk = false; break; }
+          fields[fdef.key] = { start: bounds.start, end: bounds.end, text, label: fdef.label };
+        }
+        if (!allOk) { unrecognized++; continue; }
+        records.push({ start, end, tagFullLen, idField, fields });
+      }
+      return { records, unrecognized, headerCount: recordStarts.length };
+    }
+
+    // Registro de tabelas suportadas pelo editor unificado. `id`/`label`
+    // são só pra UI; `fileHint` é o nome típico do arquivo (documentação,
+    // não usado pra detectar — a detecção é 100% pelo conteúdo/tag).
+    //
+    //   - text (t_text.tbl, TextTableData): 829 registros no arquivo real,
+    //     765 com texto (o resto é registro vazio/placeholder) — rótulo de
+    //     ação/UI curto ("Talk to", "Ride", "Settings").
+    //   - activevoice (t_active.tbl, ActiveVoiceTableData): 592 registros,
+    //     257 com fala de verdade no 5º campo (índice 4) — o resto são
+    //     variantes sem áudio/texto (barra vazia).
+    //   - mapjump (t_jump.tbl, MapJumpData): 300 registros, 252 com nome
+    //     de destino no 2º campo (índice 1) — pontos de viagem rápida.
+    //   - questtitle (t_quest.tbl, QSTitle): 114 de 114 registros (100%),
+    //     título entre 〈 〉 no 1º campo, com 1 byte de controle (rank)
+    //     colado antes — daí o stripLeadingControl.
+    //   - mg08text (t_mg08.tbl, MG08Text): 86 de 87 registros, texto único
+    //     no 1º campo — textos de UI de um minigame.
+    //   - monster (t_mons.tbl, tag "status"): 333 de 333 registros (100%),
+    //     nome no penúltimo campo e descrição no último, os dois presentes
+    //     em TODOS os registros — bestiário completo (nome + flavor text).
+    //   - linkability (t_linkab.tbl, LinkAbText): 28 de 29 registros — nome
+    //     + descrição de habilidade de vínculo. ATENÇÃO, duas pegadinhas
+    //     confirmadas byte a byte: (1) essa tabela NÃO tem idField (só 2
+    //     bytes de cabeçalho, não 4); (2) só o 1º registro (rank 0) tem um
+    //     campo vazio antes do nome — nos outros 28, o byte de rank (1-15)
+    //     fica GRUDADO no início do nome dentro do mesmo campo. Por isso
+    //     os campos são contados do FIM (fromEnd) em vez do início, e o
+    //     nome usa stripLeadingControl pra tirar o byte de rank.
+    //
+    // Tabelas investigadas e DEIXADAS DE FORA por enquanto (formato
+    // inconsistente entre registros, arriscado extrair sem mais reverse
+    // engenharia): QSChar/t_notechar (bio de personagem — elenco
+    // principal tem 1 campo a mais que os coadjuvantes, deslocando tudo),
+    // MasterQuartz*/t_mstqrt, Shop*/t_shop, QSCook/t_notecook,
+    // NaviTextData/t_navi, ItemHelpData/t_itemhelp, corpo do QSText (texto
+    // de missão — posição do campo varia registro a registro). Nome/lugar
+    // (t_name.tbl/t_place.tbl) continuam com suas próprias funções
+    // dedicadas (parseNameTable/parsePlaceTable) — formato de campo fixo
+    // que não encaixa neste motor genérico (que exige as strings
+    // preencherem o registro inteiro, sem sobra) — detectTblProfile chama
+    // as duas direto, fora do array de profiles.
+    const TBL_TABLE_PROFILES = [
+      {
+        id: "text", label: "Textos de UI (ações/rótulos curtos)", fileHint: "t_text.tbl",
+        tag: "TextTableData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Texto", maxLen: 200 }],
+      },
+      {
+        id: "activevoice", label: "Falas curtas (Active Voice)", fileHint: "t_active.tbl",
+        tag: "ActiveVoiceTableData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 4, label: "Fala", maxLen: 600 }],
+      },
+      {
+        id: "mapjump", label: "Nomes de destino (viagem rápida)", fileHint: "t_jump.tbl",
+        tag: "MapJumpData", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 1, label: "Nome do destino", maxLen: 200 }],
+      },
+      {
+        id: "questtitle", label: "Títulos de missão", fileHint: "t_quest.tbl",
+        tag: "QSTitle", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Título da missão", maxLen: 200, stripLeadingControl: true }],
+      },
+      {
+        id: "mg08text", label: "Textos do minigame (MG08)", fileHint: "t_mg08.tbl",
+        tag: "MG08Text", headerExtraBytes: 4,
+        fields: [{ key: "text", fromStart: 0, label: "Texto", maxLen: 200 }],
+      },
+      {
+        id: "monster", label: "Bestiário (nome + descrição)", fileHint: "t_mons.tbl",
+        tag: "status", headerExtraBytes: 4,
+        fields: [
+          { key: "name", fromEnd: 2, label: "Nome do monstro", maxLen: 120 },
+          { key: "desc", fromEnd: 1, label: "Descrição", maxLen: 500 },
+        ],
+      },
+      // LinkAbText: o registro do 1º item da tabela tem um campo extra
+      // vazio antes do nome (rank 0 vira um NUL "solto"), mas os demais
+      // NÃO têm esse campo vazio — o byte de rank (1-15) fica GRUDADO no
+      // início do nome dentro do mesmo campo (daí precisar contar a
+      // partir do FIM — fromEnd — em vez do início, e usar
+      // stripLeadingControl pra tirar esse byte de rank do texto editável).
+      {
+        id: "linkability", label: "Habilidades de vínculo (nome + descrição)", fileHint: "t_linkab.tbl",
+        tag: "LinkAbText", headerExtraBytes: 2,
+        fields: [
+          { key: "name", fromEnd: 2, label: "Nome da habilidade", maxLen: 120, stripLeadingControl: true },
+          { key: "desc", fromEnd: 1, label: "Descrição", maxLen: 400 },
+        ],
+      },
+    ];
+
+    // Abaixo de quantos registros um "acerto" do item table (0xFF 0xFF +
+    // flag, sem nenhuma tag ancorando) é ignorado na detecção automática.
+    // Diferente das tabelas com tag (praticamente impossível bater com um
+    // arquivo errado por acaso, já que a tag é um texto ASCII específico),
+    // o padrão do item table é genérico o bastante pra, em arquivos
+    // grandes sem relação nenhuma, coincidir por acaso um punhado de
+    // vezes — confirmado contra os 51 arquivos reais do Text.zip:
+    // t_evtable.tbl "achou" 21 pseudo-itens (na real, códigos de evento
+    // tipo "_51_01"/"r2290") e t_magic.tbl achou 114 (nome cortado no
+    // meio + "magic" repetido como "descrição") — nenhum dos dois é uma
+    // tabela de item de verdade. Os 2 arquivos reais de item que o
+    // usuário mandou têm 834 registros cada, bem acima deste teto.
+    const TBL_ITEM_DETECTION_MIN_RECORDS = 200;
+
+    // Detecta automaticamente qual tabela é o arquivo carregado: tenta o
+    // parser sentinel do item table (0xFF 0xFF + flag, sem tag), os
+    // parsers dedicados de nome/lugar (formato de campo fixo, não encaixa
+    // no motor genérico) e cada profile de TBL_TABLE_PROFILES — devolve
+    // quem reconheceu MAIS registros. Assim o usuário só precisa "abrir o
+    // arquivo", sem escolher o tipo na mão — o editor unificado descobre
+    // sozinho.
+    function detectTblProfile(bytes) {
+      let best = null;
+      const itemResult = parseItemTable(bytes);
+      if (itemResult.records.length >= TBL_ITEM_DETECTION_MIN_RECORDS) {
+        best = { kind: "item", id: "item", label: "Itens (nome + descrição)", result: itemResult };
+      }
+      const nameResult = parseNameTable(bytes);
+      if (nameResult.records.length > 0 && (!best || nameResult.records.length > best.result.records.length)) {
+        best = { kind: "name", id: "name", label: "Nomes de personagem", result: nameResult };
+      }
+      const placeResult = parsePlaceTable(bytes);
+      if (placeResult.records.length > 0 && (!best || placeResult.records.length > best.result.records.length)) {
+        best = { kind: "place", id: "place", label: "Lugares/capítulos", result: placeResult };
+      }
+      for (const profile of TBL_TABLE_PROFILES) {
+        const result = parseTaggedTableByProfile(bytes, profile);
+        if (result.records.length > 0 && (!best || result.records.length > best.result.records.length)) {
+          best = { kind: "tagged", id: profile.id, label: profile.label, profile, result };
+        }
+      }
+      return best;
+    }
 
     function baseName(fileName) {
       return fileName.replace(/\.xlsx$/i, "");
@@ -3870,7 +4279,59 @@
       return lines;
     }
 
-    function wrapToLineCount(text, lineCount) {
+    // Quantas palavras cada linha do ORIGINAL tinha — é o "molde" usado
+    // pelo wrapToLineCount pra repartir a tradução de um jeito que fique
+    // parecido com o original não só no NÚMERO de linhas, mas também na
+    // quantidade de palavra de CADA linha (uma linha curta no original vira
+    // uma linha proporcionalmente curta na tradução, não um pedaço igual
+    // das outras). Linha vazia no original (raro, mas existe) conta 0.
+    function originalLineWordCounts(original) {
+      return String(original || "")
+        .split(/\r\n|\r|\n/)
+        .map((line) => {
+          const t = line.trim();
+          return t ? t.split(/\s+/).length : 0;
+        });
+    }
+
+    // Reparte as palavras da TRADUÇÃO (já sem quebra de linha, uma frase
+    // corrida) proporcionalmente à distribuição de palavras das linhas do
+    // ORIGINAL (`lineWordCounts`, uma entrada por linha). Ex: original com
+    // "3 palavras / 7 palavras" nas 2 linhas -> a tradução tenta reservar
+    // ~30%/~70% das SUAS palavras pra linha 1/linha 2, não 50/50. Cada linha
+    // recebe pelo menos 1 palavra (exceto quando o original tinha aquela
+    // linha vazia de verdade, aí a tradução também fica vazia ali).
+    function wrapProportionalToOriginal(words, lineWordCounts) {
+      const lineCount = lineWordCounts.length;
+      const totalOriginalWords = lineWordCounts.reduce((a, b) => a + b, 0) || lineCount;
+      const totalWords = words.length;
+      const lines = [];
+      let idx = 0;
+      let cumulativeOriginal = 0;
+      for (let i = 0; i < lineCount; i++) {
+        cumulativeOriginal += lineWordCounts[i];
+        const isLast = i === lineCount - 1;
+        const remainingNonEmptyAfter = lineWordCounts.slice(i + 1).filter((c) => c > 0).length;
+        let cutoff;
+        if (lineWordCounts[i] === 0) {
+          cutoff = idx; // original tinha linha vazia aqui -> tradução também fica
+        } else {
+          cutoff = isLast ? totalWords : Math.round((cumulativeOriginal / totalOriginalWords) * totalWords);
+          cutoff = Math.max(cutoff, idx + 1); // nunca deixa a linha atual vazia (a menos que o original tenha)
+        }
+        cutoff = Math.min(cutoff, totalWords - remainingNonEmptyAfter); // reserva >=1 palavra pras próximas linhas não-vazias
+        lines.push(words.slice(idx, cutoff).join(" "));
+        idx = cutoff;
+      }
+      return lines.join("\n");
+    }
+
+    // `originalWordsPerLine` é opcional (array com a saída de
+    // originalLineWordCounts) — quando fornecido, a repartição por palavra
+    // segue a PROPORÇÃO de cada linha do original em vez de equilibrar por
+    // tamanho médio de caractere (comportamento antigo, mantido como
+    // fallback quando só temos o número de linhas, sem a forma delas).
+    function wrapToLineCount(text, lineCount, originalWordsPerLine) {
       const clean = text.replace(/\s+/g, " ").trim();
       if (lineCount <= 1 || !clean) return clean;
 
@@ -3882,13 +4343,22 @@
       // número de linhas certo, mas lê mal e não corresponde ao original.
       const frases = splitIntoSentences(clean);
       if (frases.length === lineCount) return frases.join("\n");
-      if (frases.length > lineCount) return groupSentencesIntoLines(frases, lineCount).join("\n");
 
-      // PREFERÊNCIA 2 (menos frases que linhas, ou nenhuma pontuação de
-      // fim): cai no equilíbrio por palavras, que é o comportamento antigo.
       const words = clean.split(" ");
       if (words.length < lineCount) return clean; // não tem palavra suficiente pra quebrar sem cortar
 
+      // PREFERÊNCIA 2: com a forma linha-a-linha do original em mãos,
+      // reparte por PROPORÇÃO de palavra (pedido explícito do usuário: além
+      // do número de linhas bater, a quantidade de palavra em cada linha
+      // precisa ficar parecida com a linha correspondente do original).
+      if (Array.isArray(originalWordsPerLine) && originalWordsPerLine.length === lineCount) {
+        return wrapProportionalToOriginal(words, originalWordsPerLine);
+      }
+
+      if (frases.length > lineCount) return groupSentencesIntoLines(frases, lineCount).join("\n");
+
+      // PREFERÊNCIA 3 (fallback antigo, só quando não recebemos a forma do
+      // original): equilíbrio por tamanho médio de caractere por linha.
       const targetPerLine = clean.length / lineCount;
       const lines = [];
       let current = "";
@@ -5565,7 +6035,7 @@
         // — descartar deixaria a linha sair em inglês no jogo.
         const limpo = sanitizeTranslation(flatOriginals[i], montado);
         const lineCount = originals[i].split(/\r\n|\r|\n/).length;
-        return lineCount > 1 ? wrapToLineCount(limpo, lineCount) : limpo;
+        return lineCount > 1 ? wrapToLineCount(limpo, lineCount, originalLineWordCounts(originals[i])) : limpo;
       });
     }
 
@@ -6692,7 +7162,7 @@
         // instrução no prompt (não como marcador de posição) — fica mais
         // natural mesmo quando a frase flexiona o termo ao redor dele.
         const restored = await translateViaLLM(flatOriginal, settings, properNouns, translationMemory);
-        return lineCount > 1 ? wrapToLineCount(restored, lineCount) : restored;
+        return lineCount > 1 ? wrapToLineCount(restored, lineCount, originalLineWordCounts(original)) : restored;
       }
 
       // Auditoria 2.4: códigos do jogo são protegidos PRIMEIRO — mais
@@ -6714,7 +7184,7 @@
       let restored = restorePunctuation(translatedRaw, punctTokens);
       restored = restoreProperNouns(restored, nounTokens);
       restored = restoreCodes(restored, codeTokens);
-      return lineCount > 1 ? wrapToLineCount(restored, lineCount) : restored;
+      return lineCount > 1 ? wrapToLineCount(restored, lineCount, originalLineWordCounts(original)) : restored;
     }
 
     async function translateText(original, settings, properNouns, translationMemory, retries = 3) {
@@ -6820,7 +7290,6 @@
         >
           <FileSpreadsheet size={14} color={isActive ? "#C9A227" : "currentColor"} style={{ flexShrink: 0 }} />
           <div className="sidebar-file-info">
-            <span className="file-tab-project">{doc.project}</span>
             <span className="sidebar-file-name">{doc.fileName}</span>
           </div>
           <span className="sidebar-file-badges" title={`${stats.pending} pendente(s) · ${stats.done} traduzido(s) não verificado(s) · ${stats.verified} verificado(s)`}>
@@ -7758,37 +8227,48 @@
     }
 
     // ---------------------------------------------------------------------
-    // Fase 3 — Editor de tabela de itens (t_item_en.tbl e semelhantes).
-    // Componente autocontido, igual ao editor de OPS. Suporte experimental
-    // e deliberadamente conservador: só reconhece/edita registros de texto
-    // (nome + descrição) cujo formato bate com confiança total — o resto
-    // do arquivo (bloco numérico de cada item, registros que não batem o
-    // padrão) NUNCA é tocado. Ver comentário de parseItemTable em core.js
-    // pra detalhes de como isso foi descoberto a partir do arquivo real
-    // que o usuário enviou.
+    // Editor de Tabelas (.tbl) — UNIFICADO: um botão só, o tipo da tabela é
+    // detectado sozinho (detectTblProfile, core.js) pelo CONTEÚDO do
+    // arquivo, não pelo nome. Substitui os 3 botões separados que existiam
+    // antes (Itens/Nomes/Lugares) e já nasce cobrindo as 7 tabelas novas
+    // descobertas em Text.zip (texto de UI, fala curta, destino de viagem
+    // rápida, título de missão, texto de minigame, bestiário, habilidade
+    // de vínculo) — ver comentário de TBL_TABLE_PROFILES em core.js pra
+    // como cada uma foi descoberta e validada contra o arquivo real.
+    // Fica fora do gate de "arquivo .xlsx aberto" de propósito (ver
+    // masthead-tools) — editar um .tbl não depende de nenhuma tradução em
+    // andamento.
     // ---------------------------------------------------------------------
-    function ItemTableEditorPanel() {
+    function UnifiedTableEditorPanel() {
       const [fileName, setFileName] = React.useState("");
       const [bytes, setBytes] = React.useState(null);
-      const [parsed, setParsed] = React.useState(null);
+      const [detected, setDetected] = React.useState(null); // { kind, id, label, result, profile? }
       const [selectedIndex, setSelectedIndex] = React.useState(null);
       const [search, setSearch] = React.useState("");
       const [message, setMessage] = React.useState("");
       const tauri = isTauriRuntime();
       const fileInputRef = React.useRef(null);
 
+      const reparse = (arr) => {
+        const d = detectTblProfile(arr);
+        setDetected(d);
+        setSelectedIndex(d && d.result.records.length ? 0 : null);
+        return d;
+      };
+
       const loadBytes = (arr, name) => {
         try {
-          const p = parseItemTable(arr);
+          const d = reparse(arr);
           setBytes(arr);
           setFileName(name);
-          setParsed(p);
-          setSelectedIndex(p.records.length ? 0 : null);
-          setMessage(
-            `${p.records.length} itens reconhecidos com confiança (${p.unrecognized} ignorados, formato não bateu) — ${p.totalBytes} bytes no total.`
-          );
+          if (!d) {
+            setMessage("Não reconheci esse arquivo — não é nenhuma das tabelas com texto legível que este editor sabe abrir hoje.");
+          } else {
+            setMessage(`Reconhecido como "${d.label}" — ${d.result.records.length} registro(s) com texto editável (${d.result.unrecognized} ignorados, formato não bateu) — ${arr.length} bytes no total.`);
+          }
         } catch (e) {
           console.error(e);
+          setDetected(null);
           setMessage("Não consegui ler esse arquivo: " + (e && e.message ? e.message : e));
         }
       };
@@ -7819,22 +8299,56 @@
         }
       }, []);
 
-      const rec = parsed && selectedIndex != null ? parsed.records[selectedIndex] : null;
+      const rec = detected && selectedIndex != null ? detected.result.records[selectedIndex] : null;
 
-      const fieldChange = (field, value) => {
+      // Rótulo curto pra listar cada registro na sidebar — pega o campo
+      // certo conforme o "kind" detectado (cada um tem uma forma diferente
+      // de registro).
+      const recLabel = (r) => {
+        if (!detected) return "";
+        if (detected.kind === "item") return r.name;
+        if (detected.kind === "name" || detected.kind === "place") return r.text;
+        const firstKey = detected.profile.fields[0].key;
+        return (r.fields[firstKey] && r.fields[firstKey].text) || "";
+      };
+
+      const fieldChangeItem = (field, value) => {
         if (!bytes || !rec) return;
         const maxLen = field === "name" ? 80 : 1000;
         if (!tblIsCleanText(value, maxLen)) {
-          setMessage(
-            "Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada."
-          );
+          setMessage("Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada.");
           return;
         }
         const start = field === "name" ? rec.nameStart : rec.descStart;
         const end = field === "name" ? rec.nameEnd : rec.descEnd;
         const newBytes = applyItemTableFieldEdit(bytes, start, end, value);
         setBytes(newBytes);
-        setParsed(parseItemTable(newBytes));
+        reparse(newBytes);
+      };
+
+      const fieldChangeSingle = (value, maxLen) => {
+        if (!bytes || !rec) return;
+        if (!tblIsCleanText(value, maxLen)) {
+          setMessage("Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada.");
+          return;
+        }
+        const newBytes = applyTaggedTableFieldEdit(bytes, rec.start, rec.end, rec.tagFullLen, { start: rec.fieldStart, end: rec.fieldEnd }, value);
+        setBytes(newBytes);
+        reparse(newBytes);
+      };
+
+      const fieldChangeTagged = (key, value) => {
+        if (!bytes || !rec || !detected || !detected.profile) return;
+        const fdef = detected.profile.fields.find((f) => f.key === key);
+        const maxLen = (fdef && fdef.maxLen) || 500;
+        if (!tblIsCleanText(value, maxLen)) {
+          setMessage("Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada.");
+          return;
+        }
+        const field = rec.fields[key];
+        const newBytes = applyTaggedTableFieldEdit(bytes, rec.start, rec.end, rec.tagFullLen, { start: field.start, end: field.end }, value);
+        setBytes(newBytes);
+        reparse(newBytes);
       };
 
       const downloadTbl = async () => {
@@ -7844,7 +8358,7 @@
 
       const startOver = () => {
         setBytes(null);
-        setParsed(null);
+        setDetected(null);
         setFileName("");
         setSelectedIndex(null);
         setSearch("");
@@ -7852,20 +8366,19 @@
       };
 
       const filteredIndices = React.useMemo(() => {
-        if (!parsed) return [];
+        if (!detected) return [];
         const q = search.trim().toLowerCase();
-        const all = parsed.records.map((_, i) => i);
+        const all = detected.result.records.map((_, i) => i);
         if (!q) return all;
-        return all.filter(
-          (i) => parsed.records[i].name.toLowerCase().includes(q) || parsed.records[i].desc.toLowerCase().includes(q)
-        );
-      }, [parsed, search]);
+        return all.filter((i) => recLabel(detected.result.records[i]).toLowerCase().includes(q));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [detected, search]);
 
       return (
-        <div className="scene-editor tbl-editor">
+        <div className="scene-editor tbl-editor" style={{ marginBottom: 18 }}>
           <div className="scene-editor-toolbar">
             <div className="scene-editor-summary mono">
-              {parsed ? `${parsed.records.length} itens reconhecidos` : "nenhum .tbl carregado"}
+              {detected ? `${detected.label} — ${detected.result.records.length} registro(s)` : bytes ? "formato não reconhecido" : "nenhum arquivo .tbl carregado"}
             </div>
             <div className="scene-editor-actions">
               {tauri && (
@@ -7890,196 +8403,22 @@
             </div>
           </div>
           <div className="scene-editor-note mono">
-            Suporte experimental e conservador: reverse engenharia feita em cima de UM arquivo real (t_item_en.tbl) —
-            só reconhece/edita registros cujo texto (nome + descrição) bate o padrão com confiança total (testado:
-            834 de 937 itens desse arquivo, ~89%). O resto — e todo o bloco de dados numéricos de cada item — nunca é
-            tocado. Cada edição troca só os bytes do texto escolhido, deslocando o resto do arquivo.
+            Suporte experimental: abra o arquivo e o app descobre sozinho qual tabela é (pelo conteúdo, não pelo nome) —
+            itens, nomes de personagem, lugares/capítulos, textos de UI, falas curtas, destinos de viagem rápida,
+            títulos de missão, textos de minigame (MG08), bestiário e habilidades de vínculo. Só reconhece/edita
+            registros cujo texto bate o padrão com confiança total; o resto do arquivo (inclusive campos não
+            mapeados) nunca é tocado.
           </div>
           {message && <div className="scene-editor-note mono">{message}</div>}
-          {!bytes && <div className="scene-editor-placeholder">Abra um arquivo .tbl pra começar.</div>}
-          {bytes && parsed && (
-            <div className="scene-editor-body">
-              <div className="scene-editor-sidebar">
-                <div className="search-box">
-                  <Search size={14} color="#A9967A" />
-                  <input placeholder="Buscar item…" value={search} onChange={(e) => setSearch(e.target.value)} />
-                </div>
-                <div className="scene-func-list">
-                  {filteredIndices.length === 0 && <div className="scene-func-empty">Nenhum item encontrado.</div>}
-                  {filteredIndices.map((i) => (
-                    <button
-                      key={i}
-                      className={`scene-func-item ${i === selectedIndex ? "active" : ""}`}
-                      onClick={() => setSelectedIndex(i)}
-                    >
-                      <span className="scene-func-dot" />
-                      <span className="scene-func-name mono">{parsed.records[i].name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="scene-editor-main">
-                {!rec && <div className="scene-editor-placeholder">Escolha um item à esquerda.</div>}
-                {rec && (
-                  <div className="tbl-item-form">
-                    <label className="ops-field">
-                      <span className="ops-field-label">Nome</span>
-                      <input className="mono" value={rec.name} onChange={(e) => fieldChange("name", e.target.value)} />
-                    </label>
-                    <label className="ops-field">
-                      <span className="ops-field-label">Descrição (pode ter quebra de linha)</span>
-                      <textarea
-                        className="mono"
-                        rows={5}
-                        value={rec.desc}
-                        onChange={(e) => fieldChange("desc", e.target.value)}
-                      />
-                    </label>
-                    <div className="scene-func-count">
-                      flag interna: {rec.flag} · bloco de dados (127 bytes) não editável — formato ainda não decifrado
-                    </div>
-                  </div>
-                )}
-              </div>
+          {!bytes && <div className="scene-editor-placeholder">Abra um arquivo .tbl pra começar — o tipo é detectado sozinho.</div>}
+          {bytes && !detected && (
+            <div className="scene-editor-placeholder">
+              Não reconheci esse arquivo. Hoje o editor sabe abrir: itens, nomes de personagem, lugares/capítulos,
+              textos de UI, falas curtas, destinos de viagem rápida, títulos de missão, textos de minigame (MG08),
+              bestiário e habilidades de vínculo.
             </div>
           )}
-        </div>
-      );
-    }
-
-    // ---------------------------------------------------------------------
-    // Fase 3 — Editor genérico de "tabelas com tag" (t_place.tbl e
-    // t_name.tbl compartilham a MESMA forma de registro depois de
-    // parseados — { start, end, tagFullLen, idField, fieldStart, fieldEnd,
-    // text } — e a MESMA função de edição, applyTaggedTableFieldEdit, que
-    // já corrige o lenField sozinha. Só o que muda entre os dois é qual
-    // `parseFn` usar, o rótulo do campo e o tamanho máximo aceito. Ver
-    // core.js pra como cada formato foi descoberto a partir dos arquivos
-    // reais que o usuário enviou.
-    // ---------------------------------------------------------------------
-    function TaggedTableEditorPanel({ title, icon: IconComp, parseFn, fieldLabel, maxLen, dialogFilterName, extensions, note }) {
-      const [fileName, setFileName] = React.useState("");
-      const [bytes, setBytes] = React.useState(null);
-      const [parsed, setParsed] = React.useState(null);
-      const [selectedIndex, setSelectedIndex] = React.useState(null);
-      const [search, setSearch] = React.useState("");
-      const [message, setMessage] = React.useState("");
-      const tauri = isTauriRuntime();
-      const fileInputRef = React.useRef(null);
-
-      const loadBytes = (arr, name) => {
-        try {
-          const p = parseFn(arr);
-          setBytes(arr);
-          setFileName(name);
-          setParsed(p);
-          setSelectedIndex(p.records.length ? 0 : null);
-          setMessage(`${p.records.length} registros reconhecidos (${p.unrecognized} ignorados, formato não bateu) — ${arr.length} bytes no total.`);
-        } catch (e) {
-          console.error(e);
-          setMessage("Não consegui ler esse arquivo: " + (e && e.message ? e.message : e));
-        }
-      };
-
-      const onPickFile = async (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        const buf = await file.arrayBuffer();
-        loadBytes(new Uint8Array(buf), file.name);
-        e.target.value = "";
-      };
-
-      const openFile = React.useCallback(async () => {
-        if (!window.__TAURI__) return;
-        try {
-          const picked = await window.__TAURI__.dialog.open({
-            multiple: false,
-            title: `Escolher arquivo ${extensions.map((x) => "." + x).join("/")}`,
-            filters: [{ name: dialogFilterName, extensions }],
-          });
-          if (!picked) return;
-          const path = Array.isArray(picked) ? picked[0] : picked;
-          const raw = await window.__TAURI__.core.invoke("read_file_bytes", { path });
-          loadBytes(new Uint8Array(raw), path.split(/[\\/]/).pop());
-        } catch (e) {
-          console.error(e);
-          setMessage("Falha ao abrir: " + (e && e.message ? e.message : e));
-        }
-      }, []);
-
-      const rec = parsed && selectedIndex != null ? parsed.records[selectedIndex] : null;
-
-      const fieldChange = (value) => {
-        if (!bytes || !rec) return;
-        if (!tblIsCleanText(value, maxLen)) {
-          setMessage("Texto inválido (vazio, longo demais, ou com caractere de controle além de quebra de linha) — edição não aplicada.");
-          return;
-        }
-        const newBytes = applyTaggedTableFieldEdit(bytes, rec.start, rec.end, rec.tagFullLen, { start: rec.fieldStart, end: rec.fieldEnd }, value);
-        setBytes(newBytes);
-        setParsed(parseFn(newBytes));
-      };
-
-      const downloadTbl = async () => {
-        if (!bytes) return;
-        await downloadTblFile(bytes, fileName || `editado.${extensions[0]}`);
-      };
-
-      const startOver = () => {
-        setBytes(null);
-        setParsed(null);
-        setFileName("");
-        setSelectedIndex(null);
-        setSearch("");
-        setMessage("");
-      };
-
-      const filteredIndices = React.useMemo(() => {
-        if (!parsed) return [];
-        const q = search.trim().toLowerCase();
-        const all = parsed.records.map((_, i) => i);
-        if (!q) return all;
-        return all.filter((i) => parsed.records[i].text.toLowerCase().includes(q));
-      }, [parsed, search]);
-
-      return (
-        <div className="scene-editor tbl-editor">
-          <div className="scene-editor-toolbar">
-            <div className="scene-editor-summary mono">
-              {parsed ? `${parsed.records.length} registros reconhecidos` : `nenhum arquivo carregado`}
-            </div>
-            <div className="scene-editor-actions">
-              {tauri && (
-                <button className="btn subtle" onClick={openFile}>
-                  {IconComp ? <IconComp size={13} /> : <Database size={13} />} Abrir…
-                </button>
-              )}
-              <button className="btn subtle" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
-                <Upload size={13} /> Escolher arquivo…
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={extensions.map((x) => "." + x).join(",")}
-                style={{ display: "none" }}
-                onChange={onPickFile}
-              />
-              {bytes && (
-                <React.Fragment>
-                  <button className="btn subtle" onClick={downloadTbl}>
-                    <Download size={13} /> Baixar arquivo editado
-                  </button>
-                  <button className="btn subtle" onClick={startOver}>
-                    <XIcon size={13} /> Carregar outro
-                  </button>
-                </React.Fragment>
-              )}
-            </div>
-          </div>
-          {note && <div className="scene-editor-note mono">{note}</div>}
-          {message && <div className="scene-editor-note mono">{message}</div>}
-          {!bytes && <div className="scene-editor-placeholder">Abra um arquivo pra começar.</div>}
-          {bytes && parsed && (
+          {bytes && detected && (
             <div className="scene-editor-body">
               <div className="scene-editor-sidebar">
                 <div className="search-box">
@@ -8095,20 +8434,57 @@
                       onClick={() => setSelectedIndex(i)}
                     >
                       <span className="scene-func-dot" />
-                      <span className="scene-func-name mono">{parsed.records[i].text}</span>
+                      <span className="scene-func-name mono">{recLabel(detected.result.records[i])}</span>
                     </button>
                   ))}
                 </div>
               </div>
               <div className="scene-editor-main">
                 {!rec && <div className="scene-editor-placeholder">Escolha um registro à esquerda.</div>}
-                {rec && (
+                {rec && detected.kind === "item" && (
                   <div className="tbl-item-form">
                     <label className="ops-field">
-                      <span className="ops-field-label">{fieldLabel}</span>
-                      <input className="mono" value={rec.text} onChange={(e) => fieldChange(e.target.value)} />
+                      <span className="ops-field-label">Nome</span>
+                      <input className="mono" value={rec.name} onChange={(e) => fieldChangeItem("name", e.target.value)} />
+                    </label>
+                    <label className="ops-field">
+                      <span className="ops-field-label">Descrição (pode ter quebra de linha)</span>
+                      <textarea className="mono" rows={5} value={rec.desc} onChange={(e) => fieldChangeItem("desc", e.target.value)} />
+                    </label>
+                    <div className="scene-func-count">flag interna: {rec.flag} · bloco de dados (127 bytes) não editável — formato ainda não decifrado</div>
+                  </div>
+                )}
+                {rec && (detected.kind === "name" || detected.kind === "place") && (
+                  <div className="tbl-item-form">
+                    <label className="ops-field">
+                      <span className="ops-field-label">{detected.kind === "name" ? "Nome de exibição" : "Título"}</span>
+                      <input className="mono" value={rec.text} onChange={(e) => fieldChangeSingle(e.target.value, detected.kind === "name" ? 120 : 200)} />
                     </label>
                     <div className="scene-func-count">id interno: {rec.idField} · resto do registro não editável — formato ainda não decifrado</div>
+                  </div>
+                )}
+                {rec && detected.kind === "tagged" && (
+                  <div className="tbl-item-form">
+                    {detected.profile.fields.map((fdef) => (
+                      <label className="ops-field" key={fdef.key}>
+                        <span className="ops-field-label">{fdef.label}</span>
+                        {(fdef.maxLen || 500) > 250 ? (
+                          <textarea
+                            className="mono"
+                            rows={5}
+                            value={rec.fields[fdef.key].text}
+                            onChange={(e) => fieldChangeTagged(fdef.key, e.target.value)}
+                          />
+                        ) : (
+                          <input
+                            className="mono"
+                            value={rec.fields[fdef.key].text}
+                            onChange={(e) => fieldChangeTagged(fdef.key, e.target.value)}
+                          />
+                        )}
+                      </label>
+                    ))}
+                    <div className="scene-func-count">id interno: {rec.idField != null ? rec.idField : "—"} · tabela: {detected.label}</div>
                   </div>
                 )}
               </div>
@@ -8312,6 +8688,22 @@
 
     function TranslationVerifier() {
       const [docs, setDocs] = useState([]); // {id, fileName, entries, translations, ignored, autoTranslated, lastBatch}
+      // Auditoria de projetos/arquivos: {project, fileName} de TODO progresso
+      // salvo no IndexedDB, aberto ou não agora — só assim dá pra avisar
+      // "você tem trabalho salvo de um arquivo fechado" em vez desse
+      // progresso ficar invisível até alguém lembrar de arrastar o .xlsx de
+      // novo. Carregado no boot e recarregado depois de abrir arquivo(s)
+      // novo(s) (é o único jeito de criar chave nova).
+      const [savedProgressEntries, setSavedProgressEntries] = useState([]);
+      const refreshSavedProgressEntries = useCallback(async () => {
+        try {
+          const keys = await window.storage.keysWithPrefix(PROGRESS_STORAGE_PREFIX);
+          setSavedProgressEntries(keys.map(parseProgressStorageKey).filter(Boolean));
+        } catch (e) {
+          // não crítico — sem essa lista o app funciona igual, só sem o aviso
+        }
+      }, []);
+      useEffect(() => { refreshSavedProgressEntries(); }, [refreshSavedProgressEntries]);
       const [activeId, setActiveId] = useState(null);
       const [filter, setFilter] = useState("all");
       const [search, setSearch] = useState("");
@@ -8364,6 +8756,13 @@
       // null = nenhum painel aberto; string = qual painel esta aberto.
       const [activePanel, setActivePanel] = useState(null); // null | "settings" | "memory" | "properNouns" | "qa" | "collab"
       const togglePanel = (key) => setActivePanel((p) => (p === key ? null : key));
+
+      // Editor de Tabelas (.tbl) — fora do gate de "arquivo .xlsx aberto"
+      // de propósito: edição de .tbl (itens, nomes, lugares, textos de UI,
+      // bestiário etc.) não depende de nenhum .xlsx estar carregado, então
+      // o painel/botão fica visível na tela inicial também, antes de
+      // arrastar qualquer .xlsx.
+      const [tableEditorOpen, setTableEditorOpen] = useState(false);
 
       // --- Editor de Cenas (Fase 2) -------------------------------------------
       // sceneModel: { functions, orphanInstructions, ws, sheetName } do doc
@@ -8803,9 +9202,13 @@
 
       // troca (ou cria, se for nome novo) o projeto usado pros PRÓXIMOS
       // arquivos que forem carregados — arquivos já abertos não mudam de
-      // projeto sozinhos.
+      // projeto sozinhos. resolveProjectName reaproveita a grafia de um
+      // projeto já conhecido quando o nome digitado só difere em maiúscula/
+      // espaço — sem isso, "CS3" e "cs3" viravam dois projetos diferentes
+      // silenciosamente, fragmentando o progresso salvo (auditoria de
+      // projetos e arquivos abertos).
       const changeActiveProject = (name) => {
-        const clean = name.trim();
+        const clean = resolveProjectName(name, knownProjects);
         if (!clean) return;
         setActiveProject(clean);
         setKnownProjects((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
@@ -8854,6 +9257,27 @@
         renameProject(activeProject, newName);
       };
 
+      // Tira um projeto da lista de conhecidos (não apaga progresso salvo
+      // nenhum — só o nome não aparece mais no autocomplete/chips). Só
+      // permite quando o projeto NÃO tem nenhum arquivo aberto agora, pra
+      // não sumir com o "dono" de arquivos que estão na tela.
+      const deleteProject = (name) => {
+        const hasOpenDocs = docsInProject(docs, name).length > 0;
+        if (hasOpenDocs) {
+          notify(`"${name}" tem arquivo(s) aberto(s) agora — feche-os antes de excluir o projeto da lista.`, "info");
+          return;
+        }
+        if (!window.confirm(`Excluir "${name}" da lista de projetos? Isso não apaga progresso salvo nenhum — só tira o nome da lista de sugestões.`)) return;
+        setKnownProjects((prev) => {
+          const next = prev.filter((p) => p !== name);
+          return next.length > 0 ? next : ["Padrão"];
+        });
+        if (activeProject === name) {
+          const fallback = knownProjects.find((p) => p !== name) || "Padrão";
+          setActiveProject(fallback);
+        }
+      };
+
       const updateSetting = (key, value) => {
         setTestResult(null);
         setSettings((prev) => ({ ...prev, [key]: value }));
@@ -8893,6 +9317,12 @@
       const saveTimeoutRef = useRef(new Map()); // docId -> timeout
       const cancelBatchRef = useRef(false);
       const cancelReviewRef = useRef(false);
+      // Auditoria de projetos/arquivos: marca quais docs já foram exportados
+      // (.xlsx baixado) PELO MENOS UMA VEZ nesta sessão — usado só pelo
+      // aviso de beforeunload abaixo. Não precisa ser persistido: reabrir a
+      // aba já é uma sessão nova, sem histórico de export anterior de
+      // qualquer forma (o progresso em si é o que sobrevive, via IndexedDB).
+      const exportedDocIdsRef = useRef(new Set());
 
       const activeDoc = docs.find((d) => d.id === activeId) || null;
       // auditoria 3.1: `docs` muda de referência a CADA tecla digitada (edita
@@ -8935,8 +9365,22 @@
         const project = activeProject;
         const added = [];
         const failedNames = [];
+        // Auditoria de projetos/arquivos: arrastar o mesmo .xlsx (mesmo
+        // projeto+nome) que já está aberto criava um SEGUNDO cartão
+        // independente na sidebar, os dois brigando pela mesma chave de
+        // progresso salvo. Em vez de duplicar, foca no que já está aberto.
+        const alreadyOpenNames = [];
+        let focusExistingId = null;
 
         for (const file of files) {
+          if (isDuplicateOpenFile(docsRef.current, project, file.name) || added.some((d) => d.fileName === file.name)) {
+            alreadyOpenNames.push(file.name);
+            if (!focusExistingId) {
+              const existing = docsRef.current.find((d) => d.project === project && d.fileName === file.name);
+              if (existing) focusExistingId = existing.id;
+            }
+            continue;
+          }
           try {
             const buf = await file.arrayBuffer();
             const wb = XLSX.read(buf, { type: "array" });
@@ -9044,8 +9488,16 @@
             `Não foi possível processar: ${failedNames.join(", ")}. Confira se são .xlsx exportados pelo SenScriptsDecompiler com texto traduzível.`
           );
         }
+        if (alreadyOpenNames.length > 0) {
+          notify(
+            `${alreadyOpenNames.length === 1 ? `"${alreadyOpenNames[0]}" já estava aberto` : `${alreadyOpenNames.length} arquivo(s) já estavam abertos`} no projeto "${project}" — não abri de novo pra não duplicar o progresso.`,
+            "info"
+          );
+          if (added.length === 0 && focusExistingId != null) setActiveId(focusExistingId);
+        }
+        if (added.length > 0) refreshSavedProgressEntries(); // pode ter criado chave de progresso nova
         setLoading(false);
-      }, [translationMemory, activeProject]);
+      }, [translationMemory, activeProject, refreshSavedProgressEntries]);
 
       const onInputChange = (e) => {
         handleFiles(e.target.files);
@@ -9112,6 +9564,29 @@
       useEffect(() => {
         docsRef.current = docs;
       }, [docs]);
+
+      // Auditoria de projetos/arquivos: o progresso em si já está seguro
+      // (grava sozinho no IndexedDB a cada mudança — fechar a aba não perde
+      // nada disso), mas o .xlsx TRADUZIDO só existe quando alguém clica em
+      // exportar. Fechar sem nunca ter exportado um arquivo com tradução
+      // feita dava pra esquecer que esse passo ainda falta. Aviso só —
+      // nunca bloqueia, e o texto que os navegadores realmente mostram é
+      // genérico deles mesmos (não dá pra customizar por segurança do
+      // usuário), então returnValue é só o gatilho.
+      useEffect(() => {
+        const handler = (e) => {
+          const hasUnexported = docsRef.current.some((d) => {
+            if (exportedDocIdsRef.current.has(d.id)) return false;
+            return Object.values(d.translations || {}).some((t) => (t || "").trim().length > 0);
+          });
+          if (!hasUnexported) return;
+          e.preventDefault();
+          e.returnValue = "";
+          return "";
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+      }, []);
 
       useEffect(() => {
         setPage(1);
@@ -9291,7 +9766,7 @@
         if (!entry || entry.lineCount <= 1) return;
         const current = doc.translations[ref] || "";
         if (!current.trim()) return;
-        setTranslation(docId, ref, wrapToLineCount(current, entry.lineCount));
+        setTranslation(docId, ref, wrapToLineCount(current, entry.lineCount, originalLineWordCounts(entry.original)));
       }, [setTranslation]);
 
       // Ctrl+Enter / Ctrl+I no cartão chamam isso pra pular pro campo de
@@ -9645,7 +10120,32 @@
         }
       }, [settings.sceneDecompilerFolder, sceneModel, buildEditedSceneWorkbook]);
 
+      // Auditoria de projetos/arquivos: fechar um arquivo nunca perguntava
+      // nada, mesmo com tradução feita e ainda não verificada — a única
+      // pista de que isso era "seguro" ficava escondida no title do botão.
+      // O progresso continua salvo no IndexedDB de qualquer forma (fechar
+      // NÃO apaga nada), mas agora avisa explicitamente quando há trabalho
+      // não verificado, pra não dar a impressão de que sumiu.
       const removeDoc = useCallback((docId) => {
+        const doc = docsRef.current.find((d) => d.id === docId);
+        if (doc) {
+          let unverifiedDone = 0;
+          for (const e of doc.entries) {
+            if (doc.ignored[e.ref]) continue;
+            const isVerified = !!doc.verified[e.ref];
+            const isDone = (doc.translations[e.ref] || "").trim().length > 0;
+            if (isDone && !isVerified) unverifiedDone += 1;
+          }
+          if (unverifiedDone > 0) {
+            const proceed = window.confirm(
+              `"${doc.fileName}" tem ${unverifiedDone} tradução(ões) feita(s) mas ainda NÃO verificada(s).\n\n` +
+              `O progresso continua salvo neste navegador mesmo depois de fechar (não precisa exportar antes pra não perder). ` +
+              `Mas se quiser levar o .xlsx traduzido pra outro lugar agora, exporte antes de fechar.\n\n` +
+              `Fechar "${doc.fileName}" mesmo assim?`
+            );
+            if (!proceed) return;
+          }
+        }
         setDocs((prev) => {
           const next = prev.filter((d) => d.id !== docId);
           setActiveId((prevActive) => (prevActive === docId ? (next.length > 0 ? next[0].id : null) : prevActive));
@@ -9815,6 +10315,7 @@
       const doExportTranslated = (doc, options = {}) => {
         const built = buildTranslatedWorkbook(doc, !!options.onlyVerified);
         if (!built) return;
+        exportedDocIdsRef.current.add(doc.id);
         const blob = new Blob([built.bytes], { type: "application/octet-stream" });
         saveBlobToDisk(
           blob,
@@ -9836,7 +10337,12 @@
       // nenhum — já era o caminho mais rápido, não tem motivo pra mudar.
       const doExportAllTranslated = async (options = {}) => {
         const onlyVerified = !!options.onlyVerified;
-        const targets = docs.filter((d) => originalDataMapRef.current.has(d.id));
+        // Auditoria de projetos/arquivos: "todos" aqui sempre significou
+        // "todo doc aberto na SESSÃO", mesmo que fosse de outro projeto —
+        // o nome do .zip já usava activeProject (dando a entender que era
+        // por projeto), mas o filtro de verdade não escopava. Agora escopa
+        // pra valer, batendo com o nome do arquivo gerado.
+        const targets = docsInProject(docs, activeProject).filter((d) => originalDataMapRef.current.has(d.id));
         if (targets.length === 0) return;
 
         setExportAllProgress({ done: 0, total: targets.length });
@@ -9860,7 +10366,10 @@
             targets,
             (doc) => {
               const built = buildTranslatedWorkbook(doc, onlyVerified);
-              if (built) zip.file(built.filename, built.bytes);
+              if (built) {
+                zip.file(built.filename, built.bytes);
+                exportedDocIdsRef.current.add(doc.id);
+              }
             },
             reportProgress
           );
@@ -9898,7 +10407,9 @@
       };
 
       const exportAllTranslated = async (options = {}) => {
-        const items = runQualityCheck(docs, properNouns);
+        // Mesmo escopo de doExportAllTranslated — o QA prévio precisa checar
+        // exatamente os arquivos que serão exportados, nem mais nem menos.
+        const items = runQualityCheck(docsInProject(docs, activeProject), properNouns);
         const critical = items.filter((it) => it.issues.some((i) => i.severity === "critical"));
         if (critical.length > 0) {
           const affectedFiles = new Set(critical.map((it) => it.fileName)).size;
@@ -9977,8 +10488,15 @@
           notify("Não consegui ler esse arquivo — confira se é um .json exportado por este app.", "info");
           return;
         }
-        if (!data || !Array.isArray(data.docs)) {
-          notify('Esse arquivo não parece ser um export de estado deste app (faltando "docs").', "info");
+        const validation = validateProjectStateExport(data);
+        if (!validation.ok) {
+          const messages = {
+            "not-json-object": "Esse arquivo não é um .json válido de estado deste app.",
+            "missing-docs": 'Esse arquivo não parece ser um export de estado deste app (faltando "docs").',
+            "wrong-kind": 'Esse .json não é um export de "Colaboração" deste app — parece ser outro tipo de arquivo.',
+            "newer-version": `Esse export foi feito por uma versão mais nova do app (v${validation.version}) — atualize o app antes de importar.`,
+          };
+          notify(messages[validation.reason] || "Esse arquivo não parece ser um export de estado deste app.", "info");
           return;
         }
 
@@ -10137,7 +10655,7 @@
             candidates.push({ docId: activeDoc.id, ref: e.ref, original: e.original });
           }
         } else {
-          const scopedDocs = batchScope === "all" ? docs : docs.filter((d) => d.id === activeId);
+          const scopedDocs = batchScope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
           for (const doc of scopedDocs) {
             for (const e of doc.entries) {
               if (doc.ignored[e.ref]) continue;
@@ -10196,7 +10714,7 @@
         if (batchScope === "filter") {
           if (activeDoc) pushFromDoc(activeDoc, filtered);
         } else {
-          const scopedDocs = batchScope === "all" ? docs : docs.filter((d) => d.id === activeId);
+          const scopedDocs = batchScope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
           for (const doc of scopedDocs) pushFromDoc(doc, doc.entries);
         }
         return { candidates, totalLines: candidates.length };
@@ -10739,7 +11257,7 @@
               meta.groups.forEach((g, i) => {
                 const restored = restoreCodes(translations[i], g.codeTokens);
                 const lineCount = g.original.split(/\r\n|\r|\n/).length;
-                const finalText = lineCount > 1 ? wrapToLineCount(restored, lineCount) : restored;
+                const finalText = lineCount > 1 ? wrapToLineCount(restored, lineCount, originalLineWordCounts(g.original)) : restored;
                 for (const m of g.members) {
                   updateDoc(m.docId, (d) => {
                     const translationFailed = { ...d.translationFailed };
@@ -10797,7 +11315,7 @@
           if (!activeDoc) return;
           collect(activeDoc, filtered);
         } else {
-          const scopedDocs = batchScope === "all" ? docs : docs.filter((d) => d.id === activeId);
+          const scopedDocs = batchScope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
           for (const doc of scopedDocs) collect(doc, doc.entries);
         }
 
@@ -10847,7 +11365,7 @@
       // botão "Ignorar já em português" — que só aparece quando há o que
       // ignorar, pra não virar mais um botão morto na barra.
       const ptPendingCount = useMemo(() => {
-        const scopedDocs = batchScope === "all" ? docs : docs.filter((d) => d.id === activeId);
+        const scopedDocs = batchScope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
         let n = 0;
         for (const doc of scopedDocs) {
           for (const e of doc.entries) {
@@ -10857,7 +11375,7 @@
           }
         }
         return n;
-      }, [docs, activeId, batchScope]);
+      }, [docs, activeId, batchScope, activeProject]);
 
       const stats = useMemo(() => {
         if (!activeDoc) return { total: 0, done: 0, ignored: 0, pending: 0, en: 0, verified: 0 };
@@ -10881,9 +11399,14 @@
 
       // igual ao "stats" acima, mas somando TODOS os arquivos abertos na
       // sessão — dá visão do progresso geral sem precisar abrir um por um.
+      // Escopado ao projeto ATIVO (não à sessão toda) — ele fica logo abaixo
+      // da barra de projeto, então "progresso geral" precisa ser o progresso
+      // DAQUELE projeto, não uma mistura com outros jogos abertos ao mesmo
+      // tempo na mesma sessão.
       const globalStats = useMemo(() => {
+        const scopedDocs = docsInProject(docs, activeProject);
         let total = 0, done = 0, ign = 0, verifiedCount = 0;
-        for (const d of docs) {
+        for (const d of scopedDocs) {
           for (const e of d.entries) {
             total += 1;
             if (d.ignored[e.ref]) { ign += 1; continue; }
@@ -10893,8 +11416,37 @@
           }
         }
         const pending = total - done - ign - verifiedCount;
-        return { total, done, ignored: ign, pending, verified: verifiedCount, files: docs.length };
+        return { total, done, ignored: ign, pending, verified: verifiedCount, files: scopedDocs.length };
+      }, [docs, activeProject]);
+
+      // Auditoria de projetos/arquivos: a sidebar era uma lista plana em
+      // ordem de inserção — com mais de um projeto aberto ao mesmo tempo,
+      // os arquivos de jogos diferentes ficavam misturados, só distinguíveis
+      // pela etiqueta pequena de cada item. Agrupar por projeto (preservando
+      // a ordem de abertura DENTRO de cada grupo) deixa isso visualmente
+      // óbvio, com um cabeçalho por projeto em vez de repetir a etiqueta em
+      // cada linha.
+      const groupedDocs = useMemo(() => {
+        const order = [];
+        const byProject = new Map();
+        for (const d of docs) {
+          if (!byProject.has(d.project)) { byProject.set(d.project, []); order.push(d.project); }
+          byProject.get(d.project).push(d);
+        }
+        return order.map((project) => ({ project, docs: byProject.get(project) }));
       }, [docs]);
+
+      // Arquivos do projeto ATIVO que têm progresso salvo mas não estão
+      // abertos agora — a parte visível do que refreshSavedProgressEntries
+      // carregou. Não dá pra reabrir com um clique (só temos as TRADUÇÕES
+      // salvas, não os bytes originais do .xlsx), mas pelo menos avisa que
+      // existe, em vez de ficar invisível até alguém lembrar sozinho.
+      const closedSavedFiles = useMemo(() => {
+        const openKeys = new Set(docs.map((d) => `${d.project} ${d.fileName}`));
+        return savedProgressEntries.filter(
+          (e) => e.project === activeProject && !openKeys.has(`${e.project} ${e.fileName}`)
+        );
+      }, [savedProgressEntries, docs, activeProject]);
 
       // conta quantas vezes cada texto original aparece no total, somando
       // TODOS os arquivos carregados (não só o ativo) — usado só pelo filtro
@@ -10921,8 +11473,11 @@
       }, [deferredActiveDoc, filter, search, originalOccurrenceCounts]);
 
       // Escopo da busca: "file" (só o arquivo aberto, comportamento de
-      // sempre) ou "project" (vasculha TODOS os arquivos carregados). Só
-      // entra em ação quando tem texto digitado — senão não faz sentido
+      // sempre) ou "project" (vasculha todos os arquivos abertos do PROJETO
+      // ATIVO — antes vasculhava a sessão toda, ignorando o projeto; se
+      // houvesse dois jogos abertos ao mesmo tempo, "todo o projeto"
+      // misturava os dois, contrariando o próprio nome do recurso).
+      // Só entra em ação quando tem texto digitado — senão não faz sentido
       // (a tela já mostra o arquivo ativo inteiro).
       const [projectSearch, setProjectSearch] = useState(false);
       const PROJECT_SEARCH_LIMIT = 300;
@@ -10931,8 +11486,9 @@
         if (!projectSearch || !q) return null;
         const results = [];
         let truncated = false;
+        const scopedDocs = docsInProject(deferredDocs, activeProject);
         outer:
-        for (const doc of deferredDocs) {
+        for (const doc of scopedDocs) {
           for (const e of doc.entries) {
             if (!entryMatchesFilter(doc, e, filter, q, originalOccurrenceCounts)) continue;
             if (results.length >= PROJECT_SEARCH_LIMIT) { truncated = true; break outer; }
@@ -10940,7 +11496,7 @@
           }
         }
         return { results, truncated };
-      }, [projectSearch, deferredDocs, filter, search, originalOccurrenceCounts]);
+      }, [projectSearch, deferredDocs, activeProject, filter, search, originalOccurrenceCounts]);
 
       // Paginação dos resultados de busca no projeto inteiro (auditoria
       // 3.3) — antes renderizava até 300 cartões de uma vez só, sem
@@ -10986,7 +11542,7 @@
       // roda a checagem de qualidade sob demanda: 'file' só o arquivo aberto,
       // 'all' todos os arquivos carregados na sessão
       const runQaScan = (scope) => {
-        const scopedDocs = scope === "all" ? docs : docs.filter((d) => d.id === activeId);
+        const scopedDocs = scope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
         const items = runQualityCheck(scopedDocs, properNouns);
         setQaResults({ scope, multiDoc: scope === "all", generatedAt: Date.now(), items });
         setActivePanel("qa");
@@ -11030,7 +11586,7 @@
       // re-render, já que `docs` no React só reflete a mudança depois que o
       // handler termina de rodar.
       const clearQaIgnored = (scope) => {
-        const scopedDocs = scope === "all" ? docs : docs.filter((d) => d.id === activeId);
+        const scopedDocs = scope === "all" ? docsInProject(docs, activeProject) : docs.filter((d) => d.id === activeId);
         const hasAny = scopedDocs.some((d) => d.qaIgnored && Object.values(d.qaIgnored).some((forRef) => Object.keys(forRef).length > 0));
         if (!hasAny) {
           notify("Não há avisos ignorados pra restaurar neste escopo.", "info");
@@ -11135,11 +11691,66 @@
           const doc = docsRef.current.find((d) => d.id === item.docId);
           const entry = doc && doc.entries.find((e) => e.ref === item.ref);
           if (!doc || !entry) continue;
-          const wrapped = wrapToLineCount(doc.translations[item.ref] || "", entry.lineCount);
+          const wrapped = wrapToLineCount(doc.translations[item.ref] || "", entry.lineCount, originalLineWordCounts(entry.original));
           setTranslation(item.docId, item.ref, wrapped);
         }
         // reflete a correção na lista de QA na hora, sem precisar reabrir
         runQaScan(qaResults.scope);
+      };
+
+      // Reajusta as quebras de linha de TODAS as traduções não vazias do
+      // escopo escolhido (arquivo atual / filtro atual / todos os arquivos
+      // do projeto) — diferente do "Ajustar linhas em todas" do painel de
+      // QA, que só mexe nas linhas que o scan atual marcou como erro. Esse
+      // aqui passa por tudo que tem mais de uma linha, reaproveitando o
+      // mesmo wrapToLineCount com o molde de palavra-por-linha do original.
+      // Útil depois de importar traduções prontas de outra fonte, trocar de
+      // motor de tradução, ou só pra deixar tudo com a formatação mais
+      // parecida com o original de uma vez.
+      const bulkReflowAllLines = () => {
+        let targets = []; // {docId, ref}
+        if (batchScope === "filter") {
+          if (!activeDoc) { notify("Nenhum arquivo ativo.", "err"); return; }
+          for (const e of filtered) {
+            if (e.lineCount <= 1) continue;
+            if (!(activeDoc.translations[e.ref] || "").trim()) continue;
+            targets.push({ docId: activeDoc.id, ref: e.ref });
+          }
+        } else {
+          const scopedDocs = batchScope === "all" ? docsInProject(docsRef.current, activeProject) : docsRef.current.filter((d) => d.id === activeId);
+          for (const doc of scopedDocs) {
+            for (const e of doc.entries) {
+              if (e.lineCount <= 1) continue;
+              if (!(doc.translations[e.ref] || "").trim()) continue;
+              targets.push({ docId: doc.id, ref: e.ref });
+            }
+          }
+        }
+        if (targets.length === 0) {
+          notify("Nenhuma tradução com mais de uma linha pra reajustar nesse escopo.", "info");
+          return;
+        }
+        const scopeLabel = batchScope === "filter" ? "apenas o filtro/busca atual" : batchScope === "all" ? "todos os arquivos carregados" : "o arquivo atual";
+        if (!window.confirm(
+          `Isso vai reformatar automaticamente ${targets.length} tradução(ões) (${scopeLabel}) pra ficar o mais parecido possível com o original — mesmo número de linhas e proporção de palavra por linha. Continuar?`
+        )) return;
+
+        pushUndoSnapshot(`Reajuste global de linhas (${targets.length})`, [...new Set(targets.map((t) => t.docId))]);
+        let done = 0;
+        for (const item of targets) {
+          const doc = docsRef.current.find((d) => d.id === item.docId);
+          const entry = doc && doc.entries.find((e) => e.ref === item.ref);
+          if (!doc || !entry) continue;
+          const current = doc.translations[item.ref] || "";
+          if (!current.trim()) continue;
+          const wrapped = wrapToLineCount(current, entry.lineCount, originalLineWordCounts(entry.original));
+          if (wrapped !== current) {
+            setTranslation(item.docId, item.ref, wrapped);
+            done += 1;
+          }
+        }
+        if (qaResults) runQaScan(qaResults.scope);
+        notify(`${done} linha(s) reajustada(s) pra ficar mais parecida(s) com o original.`, "ok");
       };
 
       // Reinsere os códigos do jogo que sumiram de UMA tradução. Só age se
@@ -11303,8 +11914,11 @@
           notify("Rode a verificação de qualidade antes de exportar o diagnóstico.", "info");
           return;
         }
+        // Precisa bater com o escopo que gerou qaResults de verdade (agora
+        // "all" já significa "todos do projeto ativo", não da sessão toda —
+        // ver runQualityCheck/exportAllTranslated).
         const scopedDocs = qaResults.scope === "all"
-          ? docsRef.current
+          ? docsInProject(docsRef.current, activeProject)
           : docsRef.current.filter((d) => d.id === activeId);
         const relatorio = buildQaDiagnostic(qaResults, settings, {
           totalArquivos: scopedDocs.length,
@@ -11393,7 +12007,7 @@
       // faltando que nunca ia diminuir. Marcar como ignorada resolve os
       // dois: some da conta e some da lista.
       const ignorePortugueseOriginals = () => {
-        const scopedDocs = batchScope === "all" ? docsRef.current : docsRef.current.filter((d) => d.id === activeId);
+        const scopedDocs = batchScope === "all" ? docsInProject(docsRef.current, activeProject) : docsRef.current.filter((d) => d.id === activeId);
         const targets = [];
         for (const doc of scopedDocs) {
           for (const e of doc.entries) {
@@ -11585,23 +12199,55 @@
 
       const projectBarJsx = (
         <div className="project-bar">
-          <Folder size={13} />
-          <span>Projeto:</span>
-          <input
-            list="project-options"
-            className="project-input"
-            value={activeProject}
-            onChange={(e) => changeActiveProject(e.target.value)}
-            placeholder="ex: CS3, CS4, Outro Jogo..."
-            title="Arquivos com o mesmo nome (ex: a0000.xlsx) de jogos diferentes não se misturam se estiverem em projetos diferentes. A memória de tradução continua valendo pra todos os projetos."
-          />
-          <datalist id="project-options">
-            {knownProjects.map((p) => (<option key={p} value={p} />))}
-          </datalist>
-          <button className="rename-project-btn" onClick={handleRenameProjectClick} title="Renomear este projeto (atualiza os arquivos já abertos dele)">
-            <PencilLine size={12} /> renomear
-          </button>
-          <span className="project-hint">arquivos novos entram neste projeto</span>
+          <div className="project-bar-row">
+            <Folder size={13} />
+            <span>Projeto:</span>
+            <input
+              list="project-options"
+              className="project-input"
+              value={activeProject}
+              onChange={(e) => changeActiveProject(e.target.value)}
+              placeholder="ex: CS3, CS4, Outro Jogo..."
+              title="Arquivos com o mesmo nome (ex: a0000.xlsx) de jogos diferentes não se misturam se estiverem em projetos diferentes. A memória de tradução continua valendo pra todos os projetos. Reaproveita o projeto já existente se você digitar com maiúscula/espaço diferente."
+            />
+            <datalist id="project-options">
+              {knownProjects.map((p) => (<option key={p} value={p} />))}
+            </datalist>
+            <button className="rename-project-btn" onClick={handleRenameProjectClick} title="Renomear este projeto (atualiza os arquivos já abertos dele)">
+              <PencilLine size={12} /> renomear
+            </button>
+            <span className="project-hint">arquivos novos entram neste projeto · "todos"/"todo o projeto" agora só olha este projeto</span>
+          </div>
+          {knownProjects.length > 1 && (
+            <div className="project-chip-list">
+              {knownProjects.map((p) => {
+                const openCount = docsInProject(docs, p).length;
+                return (
+                  <span key={p} className={`project-chip ${p === activeProject ? "active" : ""}`}>
+                    <button
+                      type="button"
+                      className="project-chip-select"
+                      onClick={() => changeActiveProject(p)}
+                      title={`Trocar o projeto ativo pra "${p}"`}
+                    >
+                      {p}{openCount > 0 ? ` · ${openCount}` : ""}
+                    </button>
+                    {openCount === 0 && (
+                      <button
+                        type="button"
+                        className="project-chip-delete"
+                        onClick={() => deleteProject(p)}
+                        title={`Excluir "${p}" da lista de projetos (nenhum arquivo aberto dele agora)`}
+                        aria-label={`Excluir projeto ${p}`}
+                      >
+                        <XIcon size={10} />
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
 
@@ -11633,6 +12279,18 @@
               </div>
             </div>
 
+            <div className="masthead-tools">
+              <button
+                type="button"
+                className={`btn subtle ${tableEditorOpen ? "active-btn" : ""}`}
+                onClick={() => setTableEditorOpen((v) => !v)}
+                title="Editar itens, nomes, lugares, textos de UI, bestiário e outras tabelas .tbl — não precisa abrir nenhum .xlsx antes; o tipo é detectado sozinho pelo conteúdo do arquivo"
+              >
+                <Database size={13} /> Editor de Tabelas (.tbl)
+              </button>
+            </div>
+            {tableEditorOpen && <UnifiedTableEditorPanel />}
+
             {docs.length === 0 && (
               <React.Fragment>
                 {projectBarJsx}
@@ -11647,6 +12305,14 @@
                   <h2>{loading ? "Lendo arquivo(s)..." : "Arraste um ou vários .xlsx aqui"}</h2>
                   <p>ou clique para escolher · dá pra selecionar vários de uma vez · ex: a0000.xlsx, tk_juna.xlsx</p>
                 </label>
+                {closedSavedFiles.length > 0 && (
+                  <div className="saved-progress-hint" title="Progresso salvo neste navegador de uma sessão anterior. Arraste o .xlsx de novo (mesmo nome) pra continuar de onde parou.">
+                    <RotateCcw size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>
+                      Tem progresso salvo do projeto "{activeProject}" de {closedSavedFiles.length === 1 ? "uma sessão anterior" : `${closedSavedFiles.length} arquivos de uma sessão anterior`}: {closedSavedFiles.map((f) => f.fileName).join(", ")}.
+                    </span>
+                  </div>
+                )}
                 {error && (
                   <div className="error-box">
                     <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -11660,10 +12326,10 @@
               <div className="layout-grid">
                 <aside className="sidebar">
                   {projectBarJsx}
-                  {docs.length > 1 && (
-                    <div className="global-progress" title="Progresso somando todos os arquivos abertos nesta sessão">
+                  {globalStats.files > 1 && (
+                    <div className="global-progress" title={`Progresso somando os arquivos abertos do projeto "${activeProject}"`}>
                       <div className="global-progress-row">
-                        <span>Progresso geral ({globalStats.files} arquivos)</span>
+                        <span>Progresso — {activeProject} ({globalStats.files} arquivos)</span>
                         <span className="mono">{globalStats.total ? Math.round(((globalStats.done + globalStats.verified) / globalStats.total) * 100) : 0}%</span>
                       </div>
                       <div className="progress-track">
@@ -11675,21 +12341,47 @@
                     </div>
                   )}
                   <div className="sidebar-files">
-                    {docs.map((d) => (
-                      <SidebarFileItem
-                        key={d.id}
-                        doc={d}
-                        isActive={d.id === activeId}
-                        stats={fileStatsFor(d)}
-                        onSelect={setActiveId}
-                        onRemove={removeDoc}
-                      />
+                    {groupedDocs.map(({ project, docs: groupDocs }) => (
+                      <div className="sidebar-project-group" key={project}>
+                        {groupedDocs.length > 1 && (
+                          <button
+                            type="button"
+                            className={`sidebar-project-header ${project === activeProject ? "is-active-project" : ""}`}
+                            onClick={() => changeActiveProject(project)}
+                            title={`${groupDocs.length} arquivo(s) — clique pra trocar o projeto ativo pra "${project}"`}
+                          >
+                            <Folder size={11} />
+                            <span>{project}</span>
+                            <span className="sidebar-project-count">{groupDocs.length}</span>
+                          </button>
+                        )}
+                        {groupDocs.map((d) => (
+                          <SidebarFileItem
+                            key={d.id}
+                            doc={d}
+                            isActive={d.id === activeId}
+                            stats={fileStatsFor(d)}
+                            onSelect={setActiveId}
+                            onRemove={removeDoc}
+                          />
+                        ))}
+                      </div>
                     ))}
                   </div>
                   <label className={`add-more-dropzone ${dragOver ? "drag" : ""}`}>
                     <input type="file" accept=".xlsx" multiple className="hidden-input" onChange={onAddMoreInputChange} />
                     <FilePlus size={13} /> adicionar arquivo(s) a "{activeProject}"
                   </label>
+                  {closedSavedFiles.length > 0 && (
+                    <div className="saved-progress-hint" title="Progresso salvo neste navegador de arquivo(s) que não estão abertos agora. Arraste o .xlsx de novo (mesmo nome) pra continuar de onde parou.">
+                      <RotateCcw size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>
+                        {closedSavedFiles.length === 1
+                          ? `Tem progresso salvo de "${closedSavedFiles[0].fileName}", fechado agora — arraste ele de novo pra continuar.`
+                          : `Tem progresso salvo de ${closedSavedFiles.length} arquivo(s) fechados agora: ${closedSavedFiles.map((f) => f.fileName).join(", ")}.`}
+                      </span>
+                    </div>
+                  )}
                 </aside>
 
                 <main className="main-content">
@@ -11766,25 +12458,11 @@
                           <MapPin size={13} /> Editor de OPS
                         </button>
                         <button
-                          className={`btn subtle ${activePanel === "tbl" ? "active-btn" : ""}`}
-                          onClick={() => togglePanel("tbl")}
-                          title="Editar nome/descrição de itens num arquivo .tbl (ex: t_item_en.tbl) — suporte experimental, só texto reconhecido com confiança"
+                          className={`btn subtle ${tableEditorOpen ? "active-btn" : ""}`}
+                          onClick={() => setTableEditorOpen((v) => !v)}
+                          title="Editar itens, nomes, lugares, textos de UI, bestiário e outras tabelas .tbl — o tipo é detectado sozinho pelo conteúdo do arquivo"
                         >
-                          <Database size={13} /> Itens (.tbl)
-                        </button>
-                        <button
-                          className={`btn subtle ${activePanel === "tblname" ? "active-btn" : ""}`}
-                          onClick={() => togglePanel("tblname")}
-                          title="Editar nome de exibição de personagens num arquivo .tbl (ex: t_name.tbl)"
-                        >
-                          <Users size={13} /> Nomes (.tbl)
-                        </button>
-                        <button
-                          className={`btn subtle ${activePanel === "tblplace" ? "active-btn" : ""}`}
-                          onClick={() => togglePanel("tblplace")}
-                          title="Editar título de lugares/capítulos num arquivo .tbl (ex: t_place.tbl)"
-                        >
-                          <MapPin size={13} /> Lugares (.tbl)
+                          <Database size={13} /> Editor de Tabelas (.tbl)
                         </button>
                         <button
                           className="btn subtle"
@@ -11855,6 +12533,15 @@
                               <Search size={13} /> Revisar coerência (IA)
                             </button>
                           )
+                        )}
+                        {!batchRunning && (
+                          <button
+                            className="btn subtle"
+                            onClick={bulkReflowAllLines}
+                            title='Reformata a quebra de linha de TODAS as traduções já feitas (no escopo escolhido acima) pra ficar o mais parecido possível com o original — mesmo número de linhas e proporção de palavra por linha. Diferente do conserto do painel de QA, que só mexe no que o scan atual marcou como erro.'
+                          >
+                            <WrapText size={13} /> Reajustar linhas (tudo)
+                          </button>
                         )}
                         {!batchRunning && (
                           <button
@@ -12148,34 +12835,6 @@
                     {activePanel === "idcalc" && <FileIdCalculator />}
 
                     {activePanel === "ops" && <OpsEditorPanel />}
-
-                    {activePanel === "tblname" && (
-                      <TaggedTableEditorPanel
-                        title="Editor de Nomes (.tbl)"
-                        icon={Users}
-                        parseFn={parseNameTable}
-                        fieldLabel="Nome de exibição"
-                        maxLen={120}
-                        dialogFilterName="Tabela de nomes CS3"
-                        extensions={["tbl"]}
-                        note="Reconhece nome de exibição de personagens (ex: t_name.tbl) — testado contra o arquivo real do usuário: 1581 de 1581 registros (100%). Só esse campo é editável; o resto do registro (modelo 3D, variantes internas, 19 bytes de dados não decifrados) nunca é tocado."
-                      />
-                    )}
-
-                    {activePanel === "tblplace" && (
-                      <TaggedTableEditorPanel
-                        title="Editor de Lugares (.tbl)"
-                        icon={MapPin}
-                        parseFn={parsePlaceTable}
-                        fieldLabel="Título do lugar/capítulo"
-                        maxLen={200}
-                        dialogFilterName="Tabela de lugares CS3"
-                        extensions={["tbl"]}
-                        note="Reconhece o título de lugares/capítulos (ex: t_place.tbl) — testado contra o arquivo real do usuário: 474 de 474 registros (100%). Só esse campo é editável; o resto do registro (posição, hierarquia de sub-lugares, flags) nunca é tocado."
-                      />
-                    )}
-
-                    {activePanel === "tbl" && <ItemTableEditorPanel />}
 
                     {activePanel === "settings" && (
                       <div className="settings-panel">
