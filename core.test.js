@@ -3021,6 +3021,32 @@ test("wrapToLineCount: molde do original também funciona no caso de 'mais frase
   assert.equal(r.replace(/\n/g, " "), traducao);
 });
 
+// Caso real reportado pelo usuário (print do L8237): a tradução tinha o
+// MESMO número de frases que linhas (2 e 2), então a regra antiga de "uma
+// frase por linha" vencia e ignorava o molde — mesmo o original tendo 7
+// palavras / 7 palavras (bem equilibrado), saía 4 palavras / 12 palavras na
+// tradução. Depois da correção de prioridade, o molde manda sempre que está
+// disponível e válido, então esse caso agora fica bem mais equilibrado.
+test("wrapToLineCount: molde vence 'mesmo número de frases que linhas' quando os dois desbalanceiam (bug real do usuário)", () => {
+  const original = "#E[1]#M_A#B_0Especially at Thors. It's a prestigious, traditional\nschool founded by our most notable emperor.";
+  const traducao = "#E[1]#M_A#B_0E especialmente no Thors. É uma escola prestigiada e tradicional fundada pelo nosso imperador mais notável.";
+  // confirma a premissa do bug: a tradução tem 2 frases, igual ao lineCount
+  assert.equal(core.splitIntoSentences(traducao.replace(/\s+/g, " ").trim()).length, 2);
+
+  const molde = core.originalLineWordCounts(original);
+  assert.deepEqual(molde, [7, 7]);
+
+  const r = core.wrapToLineCount(traducao, 2, molde);
+  const [l1, l2] = r.split("\n");
+  const n1 = l1.split(" ").length;
+  const n2 = l2.split(" ").length;
+  // antes: 4 / 12 (bem torto). agora: perto de 8 / 8 (metade/metade, como
+  // o original) -- a diferença entre as duas linhas não pode passar de 2
+  assert.ok(Math.abs(n1 - n2) <= 2, `esperava linhas equilibradas (~8/8), veio ${n1}/${n2}`);
+  // nada de palavra perdida, repetida ou fora de ordem
+  assert.equal(r.replace(/\n/g, " "), traducao.replace(/\s+/g, " ").trim());
+});
+
 test("QA: inglês e outros idiomas agora são o MESMO tipo", () => {
   const entry = { ref: "A", original: "Please be careful.", codes: [], lineCount: 1, lang: "en" };
 

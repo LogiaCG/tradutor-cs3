@@ -4335,29 +4335,36 @@
       const clean = text.replace(/\s+/g, " ").trim();
       if (lineCount <= 1 || !clean) return clean;
 
-      // PREFERÊNCIA 1: quebrar onde a frase termina.
-      // No formato deste jogo, o original quase sempre traz uma frase por
-      // linha ("Please be careful." / "Don't push or run!"). Quebrar por
-      // contagem de caracteres ignorando isso produzia coisas como
-      // "Por favor, tenha / cuidado. Não empurre nem corra!" — que cabe no
-      // número de linhas certo, mas lê mal e não corresponde ao original.
-      const frases = splitIntoSentences(clean);
-      if (frases.length === lineCount) return frases.join("\n");
-
       const words = clean.split(" ");
-      if (words.length < lineCount) return clean; // não tem palavra suficiente pra quebrar sem cortar
 
-      // PREFERÊNCIA 2: com a forma linha-a-linha do original em mãos,
-      // reparte por PROPORÇÃO de palavra (pedido explícito do usuário: além
-      // do número de linhas bater, a quantidade de palavra em cada linha
-      // precisa ficar parecida com a linha correspondente do original).
-      if (Array.isArray(originalWordsPerLine) && originalWordsPerLine.length === lineCount) {
+      // PREFERÊNCIA 0 (a mais forte, quando temos a forma do original em
+      // mãos): reparte por PROPORÇÃO de palavra de cada linha do original.
+      // Isso vem ANTES até da "uma frase por linha" de baixo de propósito —
+      // bater o NÚMERO de frases com o número de linhas é só coincidência de
+      // pontuação e pode ficar bem torto (ex. real: original 7 palavras / 7
+      // palavras nas 2 linhas; a tradução também tinha 2 frases, então caía
+      // na regra de frase-por-linha e saía 4 palavras / 12 palavras — bem
+      // longe do 7/7 do original, mesmo com o número de linhas "certo"). Com
+      // o molde, a repartição persegue a MESMA proporção do original em vez
+      // de só a pontuação da tradução.
+      if (Array.isArray(originalWordsPerLine) && originalWordsPerLine.length === lineCount && words.length >= lineCount) {
         return wrapProportionalToOriginal(words, originalWordsPerLine);
       }
 
+      // PREFERÊNCIA 1 (sem molde do original disponível): quebrar onde a
+      // frase termina. No formato deste jogo, o original quase sempre traz
+      // uma frase por linha ("Please be careful." / "Don't push or run!").
+      // Quebrar por contagem de caracteres ignorando isso produzia coisas
+      // como "Por favor, tenha / cuidado. Não empurre nem corra!" — que cabe
+      // no número de linhas certo, mas lê mal e não corresponde ao original.
+      const frases = splitIntoSentences(clean);
+      if (frases.length === lineCount) return frases.join("\n");
+
+      if (words.length < lineCount) return clean; // não tem palavra suficiente pra quebrar sem cortar
+
       if (frases.length > lineCount) return groupSentencesIntoLines(frases, lineCount).join("\n");
 
-      // PREFERÊNCIA 3 (fallback antigo, só quando não recebemos a forma do
+      // PREFERÊNCIA 2 (fallback antigo, só quando não recebemos a forma do
       // original): equilíbrio por tamanho médio de caractere por linha.
       const targetPerLine = clean.length / lineCount;
       const lines = [];
