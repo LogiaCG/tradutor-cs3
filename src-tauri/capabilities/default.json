@@ -1,0 +1,8 @@
+{
+  "identifier": "default",
+  "description": "Capacidades padrão da janela principal (Fase 1: só a janela, sem acesso a arquivo nativo ainda)",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

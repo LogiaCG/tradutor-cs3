@@ -1,0 +1,20 @@
+[package]
+name = "tradutor-cs3"
+version = "0.1.0"
+description = "Tradutor CS3 - ferramenta de tradução assistida por IA para Trails of Cold Steel III"
+authors = ["Matheus"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Fase 1: nenhum plugin nativo é necessário ainda. O front-end (src/index.html)
+# já usa File System Access API / <input type=file> / download via Blob, que
+# funcionam nativamente dentro do WebView2 (Windows) sem precisar de plugin
+# Tauri nenhum. Plugins de fs/dialog/store entram na Fase 2+, quando o editor
+# de cena precisar ler/escrever .dat/.tbl/.ops fora da sandbox do navegador.

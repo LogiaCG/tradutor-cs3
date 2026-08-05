@@ -1,0 +1,12 @@
+{
+  "name": "tradutor-cs3-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Empacotamento Windows (Tauri) do Tradutor CS3",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
