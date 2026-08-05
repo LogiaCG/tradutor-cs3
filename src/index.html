@@ -1612,7 +1612,14 @@
       border-color: var(--accent-amber);
       color: var(--text-onDark);
     }
-    .scene-func-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scene-func-dot {
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-amber);
+    }
+    .scene-func-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .scene-func-count {
       flex-shrink: 0;
       font-family: 'IBM Plex Mono', monospace;
@@ -1635,18 +1642,31 @@
       padding: 20px 4px;
     }
     .scene-func-title {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      background: var(--bg-panel);
       color: var(--text-onDark);
       font-size: var(--fs-body);
-      padding-bottom: 6px;
+      padding: 4px 0 8px;
       border-bottom: 1px dashed var(--hairline);
+    }
+    .scene-func-title-count {
+      color: var(--text-onDark-soft);
+      font-size: 10.5px;
+      font-family: 'IBM Plex Mono', monospace;
     }
     .scene-instr-card {
       background: var(--bg-panel-raised);
       border: 1px solid var(--hairline);
       border-radius: var(--radius-sm);
       padding: 10px 12px;
+      transition: border-color .12s ease;
     }
-    .scene-instr-card.scene-instr-known { border-color: var(--accent-amber); }
+    .scene-instr-card.scene-instr-known { border-color: rgba(215,154,59,0.45); }
     .scene-instr-head {
       display: flex;
       align-items: center;
@@ -1655,12 +1675,26 @@
       flex-wrap: wrap;
     }
     .scene-instr-op {
-      color: var(--accent-amber);
-      font-size: var(--fs-meta);
-    }
-    .scene-instr-label {
       color: var(--text-onDark);
       font-size: var(--fs-meta);
+      opacity: 0.85;
+    }
+    .scene-instr-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      color: var(--accent-amber);
+      background: rgba(215,154,59,0.12);
+      border: 1px solid rgba(215,154,59,0.35);
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .scene-instr-badge-unknown {
+      color: var(--text-onDark-soft);
+      background: rgba(255,255,255,0.04);
+      border-color: var(--hairline);
+      font-style: italic;
     }
     .scene-instr-row {
       margin-left: auto;
@@ -1673,9 +1707,10 @@
       font-style: italic;
     }
     .scene-instr-params {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, max-content));
+      gap: 8px 10px;
+      align-items: start;
     }
     .scene-param {
       display: flex;
@@ -1683,7 +1718,11 @@
       gap: 3px;
       min-width: 90px;
     }
+    .scene-param-wide { grid-column: span 2; }
     .scene-param-label {
+      display: flex;
+      align-items: center;
+      gap: 3px;
       color: var(--text-onDark-soft);
       font-size: 10px;
       text-transform: uppercase;
@@ -1698,13 +1737,19 @@
       border-radius: var(--radius-sm);
       padding: 5px 7px;
       width: 100px;
+      transition: border-color .12s ease;
+    }
+    .scene-param-input:focus {
+      outline: none;
+      border-color: var(--accent-amber);
     }
     .scene-param-textarea {
-      width: 220px;
+      width: 100%;
+      min-width: 220px;
       resize: vertical;
     }
     .scene-param-readonly {
-      opacity: 0.55;
+      opacity: 0.5;
     }
     .scene-param-value {
       color: var(--text-onDark-soft);
@@ -1998,6 +2043,7 @@
     const Search = (p) => <Icon {...p} paths={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />;
     const Download = (p) => <Icon {...p} paths={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />;
     const RefreshCw = (p) => <Icon {...p} paths={<><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></>} />;
+    const Lock = (p) => <Icon {...p} paths={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>} />;
     const Trash2 = (p) => <Icon {...p} paths={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>} />;
     const Info = (p) => <Icon {...p} paths={<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>} />;
     const CheckCircle2 = (p) => <Icon {...p} paths={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
@@ -6716,7 +6762,9 @@
         const pointerTarget = param.type === "pointer" ? parseScenePointerTarget(param.value) : null;
         return (
           <div className="scene-param scene-param-readonly" title={`tipo "${param.type}" — estrutura/fórmula, não editável`}>
-            <div className="scene-param-label">{param.type}</div>
+            <div className="scene-param-label">
+              <Lock size={9} style={{ opacity: 0.7 }} /> {param.type}
+            </div>
             <div className="scene-param-value mono">
               {pointerTarget ? `→ linha ${pointerTarget.row}` : param.value === "" || param.value === null || param.value === undefined ? "—" : String(param.value)}
             </div>
@@ -6727,7 +6775,7 @@
       const isIntLike = param.type === "byte" || param.type === "short" || param.type === "int" || param.type === "bytearray";
       const isBigText = param.type === "dialog" || (param.type === "string" && typeof param.value === "string" && param.value.length > 20);
       return (
-        <div className="scene-param">
+        <div className={`scene-param ${isBigText ? "scene-param-wide" : ""}`}>
           <div className="scene-param-label">{param.type}</div>
           {isBigText ? (
             <textarea
@@ -6761,11 +6809,18 @@
     }
 
     const SceneInstructionCard = React.memo(function SceneInstructionCard({ instruction, onParamChange }) {
+      const known = !!instruction.label;
       return (
-        <div className={`scene-instr-card ${instruction.label ? "scene-instr-known" : ""}`}>
+        <div className={`scene-instr-card ${known ? "scene-instr-known" : ""}`}>
           <div className="scene-instr-head">
             <span className="scene-instr-op mono">OP {instruction.opCode}</span>
-            {instruction.label && <span className="scene-instr-label">{instruction.label}</span>}
+            {known ? (
+              <span className="scene-instr-badge">
+                <Sparkles size={10} /> {instruction.label}
+              </span>
+            ) : (
+              <span className="scene-instr-badge scene-instr-badge-unknown">não documentado</span>
+            )}
             <span className="scene-instr-row mono">linha {instruction.row}</span>
           </div>
           {instruction.params.length === 0 ? (
@@ -6781,38 +6836,56 @@
       );
     });
 
-    function SceneFunctionList({ functions, search, selectedIndex, onSelect }) {
+    function SceneFunctionList({ functions, search, onlyKnown, selectedIndex, onSelect }) {
       const filtered = React.useMemo(() => {
         const q = search.trim().toLowerCase();
         return functions
-          .map((fn, idx) => ({ fn, idx }))
-          .filter(({ fn }) => !q || fn.name.toLowerCase().includes(q));
-      }, [functions, search]);
+          .map((fn, idx) => {
+            const known = fn.instructions.reduce((n, i) => n + (i.label ? 1 : 0), 0);
+            return { fn, idx, known, total: fn.instructions.length };
+          })
+          .filter(({ fn, known }) => (!q || fn.name.toLowerCase().includes(q)) && (!onlyKnown || known > 0));
+      }, [functions, search, onlyKnown]);
       return (
         <div className="scene-func-list">
-          {filtered.length === 0 && <div className="scene-func-empty">nenhuma função encontrada</div>}
-          {filtered.map(({ fn, idx }) => (
+          {filtered.length === 0 && (
+            <div className="scene-func-empty">
+              {onlyKnown ? "nenhuma função com OP code amigável aqui" : "nenhuma função encontrada"}
+            </div>
+          )}
+          {filtered.map(({ fn, idx, known, total }) => (
             <button
               key={fn.row}
               className={`scene-func-item ${selectedIndex === idx ? "active" : ""}`}
               onClick={() => onSelect(idx)}
+              title={known > 0 ? `${known} de ${total} instruções com OP code amigável` : "nenhum OP code amigável nesta função"}
             >
+              {known > 0 && <span className="scene-func-dot" />}
               <span className="scene-func-name mono">{fn.name || `(sem nome, linha ${fn.row})`}</span>
-              <span className="scene-func-count">{fn.instructions.length}</span>
+              <span className="scene-func-count">{onlyKnown ? known : total}</span>
             </button>
           ))}
         </div>
       );
     }
 
-    function SceneEditorPanel({ scene, search, onSearchChange, selectedIndex, onSelectFunction, onParamChange, onSave, onRecompile, sceneSettings, onOpenDatFile, saving, recompiling, lastResultMessage }) {
+    function SceneEditorPanel({ scene, search, onSearchChange, onlyKnown, onToggleOnlyKnown, selectedIndex, onSelectFunction, onParamChange, onSave, onRecompile, sceneSettings, onOpenDatFile, saving, recompiling, lastResultMessage }) {
       const selectedFn = selectedIndex != null ? scene.functions[selectedIndex] : null;
       const tauri = isTauriRuntime();
+      const totalInstr = React.useMemo(() => scene.functions.reduce((n, f) => n + f.instructions.length, 0), [scene]);
+      const totalKnown = React.useMemo(
+        () => scene.functions.reduce((n, f) => n + f.instructions.reduce((m, i) => m + (i.label ? 1 : 0), 0), 0),
+        [scene]
+      );
+      const visibleInstructions = React.useMemo(() => {
+        if (!selectedFn) return [];
+        return onlyKnown ? selectedFn.instructions.filter((i) => !!i.label) : selectedFn.instructions;
+      }, [selectedFn, onlyKnown]);
       return (
         <div className="scene-editor">
           <div className="scene-editor-toolbar">
             <div className="scene-editor-summary mono">
-              {scene.functions.length} funções · {scene.functions.reduce((n, f) => n + f.instructions.length, 0)} instruções
+              {scene.functions.length} funções · {totalInstr} instruções · {totalKnown} amigáveis
             </div>
             <div className="scene-editor-actions">
               {tauri && (
@@ -6838,16 +6911,27 @@
           {lastResultMessage && <div className="scene-editor-note mono">{lastResultMessage}</div>}
           <div className="scene-editor-body">
             <div className="scene-editor-sidebar">
-              <input
-                type="text"
-                className="scene-search"
-                placeholder="Buscar função…"
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-              />
+              <div className="search-box">
+                <Search size={14} color="#A9967A" />
+                <input
+                  placeholder="Buscar função…"
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+              </div>
+              <button
+                className={`chip ${onlyKnown ? "active" : ""}`}
+                onClick={onToggleOnlyKnown}
+                title="Mostra só as funções e instruções com OP code já documentado (nome amigável)"
+                style={{ alignSelf: "flex-start" }}
+              >
+                <Sparkles size={12} style={{ marginRight: 4, verticalAlign: -2 }} />
+                Só OP codes amigáveis {onlyKnown ? `(${totalKnown})` : ""}
+              </button>
               <SceneFunctionList
                 functions={scene.functions}
                 search={search}
+                onlyKnown={onlyKnown}
                 selectedIndex={selectedIndex}
                 onSelect={onSelectFunction}
               />
@@ -6856,8 +6940,18 @@
               {!selectedFn && <div className="scene-editor-placeholder">Escolha uma função à esquerda pra ver as instruções dela.</div>}
               {selectedFn && (
                 <React.Fragment>
-                  <div className="scene-func-title mono">{selectedFn.name || `(sem nome)`} — linha {selectedFn.row}</div>
-                  {selectedFn.instructions.map((instr) => (
+                  <div className="scene-func-title mono">
+                    {selectedFn.name || `(sem nome)`} — linha {selectedFn.row}
+                    <span className="scene-func-title-count">
+                      {visibleInstructions.length} de {selectedFn.instructions.length} instruções
+                    </span>
+                  </div>
+                  {visibleInstructions.length === 0 && (
+                    <div className="scene-editor-placeholder">
+                      Essa função não tem nenhuma instrução com OP code amigável. Desmarque o filtro pra ver todas.
+                    </div>
+                  )}
+                  {visibleInstructions.map((instr) => (
                     <SceneInstructionCard key={instr.row} instruction={instr} onParamChange={onParamChange} />
                   ))}
                 </React.Fragment>
@@ -7126,6 +7220,7 @@
       const [sceneEdits, setSceneEdits] = useState({}); // { "row:col": value }
       const [sceneSelectedFuncIndex, setSceneSelectedFuncIndex] = useState(null);
       const [sceneSearch, setSceneSearch] = useState("");
+      const [sceneOnlyKnownOps, setSceneOnlyKnownOps] = useState(false); // filtro exclusivo: só OP codes com nome amigável
       const [sceneSaving, setSceneSaving] = useState(false);
       const [sceneRecompiling, setSceneRecompiling] = useState(false);
       const [sceneMessage, setSceneMessage] = useState(null);
@@ -8263,6 +8358,7 @@
           setSceneEdits({});
           setSceneSelectedFuncIndex(null);
           setSceneSearch("");
+          setSceneOnlyKnownOps(false);
           setSceneMessage(null);
           setActivePanel("cenas");
         } catch (e) {
@@ -10843,6 +10939,8 @@
                         scene={sceneModel}
                         search={sceneSearch}
                         onSearchChange={setSceneSearch}
+                        onlyKnown={sceneOnlyKnownOps}
+                        onToggleOnlyKnown={() => setSceneOnlyKnownOps((v) => !v)}
                         selectedIndex={sceneSelectedFuncIndex}
                         onSelectFunction={setSceneSelectedFuncIndex}
                         onParamChange={sceneParamChange}
