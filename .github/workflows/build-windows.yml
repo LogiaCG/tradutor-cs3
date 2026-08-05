@@ -9,17 +9,25 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# Sem isso, o GITHUB_TOKEN padrão vem só com permissão de leitura em muitos
+# repositórios (depende da configuração em Settings > Actions > General >
+# Workflow permissions), e o tauri-action precisa criar um Release pra
+# publicar o instalador — daí o erro "Resource not accessible by
+# integration" na primeira tentativa de build.
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Instalar Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
