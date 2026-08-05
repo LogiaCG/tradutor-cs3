@@ -9,14 +9,6 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
-# Sem isso, o GITHUB_TOKEN padrão vem só com permissão de leitura em muitos
-# repositórios (depende da configuração em Settings > Actions > General >
-# Workflow permissions), e o tauri-action precisa criar um Release pra
-# publicar o instalador — daí o erro "Resource not accessible by
-# integration" na primeira tentativa de build.
-permissions:
-  contents: write
-
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -34,13 +26,21 @@ jobs:
       - name: Instalar dependências (Tauri CLI)
         run: npm install
 
+      # Build direto pela CLI (em vez do tauri-apps/tauri-action) porque a
+      # action tenta criar um GitHub Release automaticamente, e isso exige o
+      # GITHUB_TOKEN com permissão de escrita — permissão que depende de uma
+      # configuração no repositório (Settings > Actions > General > Workflow
+      # permissions) e não só do bloco `permissions:` do workflow. Foi
+      # exatamente isso que causou "Resource not accessible by integration"
+      # nas duas primeiras tentativas. Buildando direto e publicando como
+      # artefato do run, o token padrão (só leitura) já é suficiente — sem
+      # depender de nenhuma configuração extra no GitHub.
       - name: Build do instalador
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run tauri build
+
+      - name: Publicar o instalador como artefato deste run
+        uses: actions/upload-artifact@v4
         with:
-          tagName: app-v__VERSION__
-          releaseName: "Tradutor CS3 v__VERSION__"
-          releaseBody: "Build automático do instalador Windows (NSIS). Baixe o .exe nos assets deste release."
-          releaseDraft: true
-          prerelease: false
+          name: tradutor-cs3-windows-installer
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
